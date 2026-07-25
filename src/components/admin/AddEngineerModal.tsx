@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from '../../types/fsm';
 import { UserPlus, Mail, Lock, Phone, User as UserIcon, X, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { auth } from '../../services/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createSecondaryAuthUser } from '../../services/firebase';
 import { firebaseService } from '../../services/firebaseService';
 
 interface AddEngineerModalProps {
@@ -65,18 +64,18 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
     setSuccessMessage(null);
 
     try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password.trim();
       let uid = `USER_${Math.floor(1000 + Math.random() * 9000)}`;
 
-      // Create secondary Firebase Auth user
-      if (auth) {
-        try {
-          const userCred = await createUserWithEmailAndPassword(auth, email.trim(), password.trim());
-          if (userCred.user) {
-            uid = userCred.user.uid;
-          }
-        } catch (authErr: any) {
-          console.warn('Firebase Auth creation warning:', authErr.message);
+      // Create secondary Firebase Auth user so Admin session is untouched
+      try {
+        const authUid = await createSecondaryAuthUser(cleanEmail, cleanPassword);
+        if (authUid) {
+          uid = authUid;
         }
+      } catch (authErr: any) {
+        console.warn('Firebase Auth user creation note:', authErr.message);
       }
 
       const newUser: User = {

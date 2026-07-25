@@ -17,6 +17,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { ErrorBoundary } from './components/auth/ErrorBoundary';
 import { HistoricalLogsModal } from './components/admin/HistoricalLogsModal';
 import { ManageDispatchesModal } from './components/admin/ManageDispatchesModal';
+import { UserManagementModal } from './components/admin/UserManagementModal';
 
 function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
   const { authRole, authEmail, currentUserDoc, logout } = useAuth();
@@ -41,6 +42,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isAddEngineerOpen, setIsAddEngineerOpen] = useState(false);
   const [isHistoricalLogsOpen, setIsHistoricalLogsOpen] = useState(false);
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
   const [managingEngineerUser, setManagingEngineerUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -122,6 +124,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
         onLogout={handleLogoutAction}
         onOpenAddEngineer={authRole === 'admin' ? () => setIsAddEngineerOpen(true) : undefined}
         onOpenHistoricalLogs={authRole === 'admin' ? () => setIsHistoricalLogsOpen(true) : undefined}
+        onOpenUserManagement={authRole === 'admin' ? () => setIsUserManagementOpen(true) : undefined}
       />
 
       {/* Main View Area */}
@@ -143,6 +146,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
               onOpenReport={() => setIsReportOpen(true)}
               onOpenAddEngineer={() => setIsAddEngineerOpen(true)}
               onOpenHistoricalLogs={() => setIsHistoricalLogsOpen(true)}
+              onOpenUserManagement={() => setIsUserManagementOpen(true)}
               unreadAlertCount={unreadAlertCount}
               onOpenAlerts={() => setIsAlertsOpen(true)}
             />
@@ -204,6 +208,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
                 onOpenReport={() => setIsReportOpen(true)}
                 onOpenAddEngineer={() => setIsAddEngineerOpen(true)}
                 onOpenHistoricalLogs={() => setIsHistoricalLogsOpen(true)}
+                onOpenUserManagement={() => setIsUserManagementOpen(true)}
                 unreadAlertCount={unreadAlertCount}
                 onOpenAlerts={() => setIsAlertsOpen(true)}
               />
@@ -285,6 +290,13 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
         users={users}
         isOpen={isHistoricalLogsOpen}
         onClose={() => setIsHistoricalLogsOpen(false)}
+      />
+
+      <UserManagementModal
+        users={users}
+        isOpen={isUserManagementOpen}
+        onClose={() => setIsUserManagementOpen(false)}
+        onOpenAddUser={() => setIsAddEngineerOpen(true)}
       />
 
       <ManageDispatchesModal

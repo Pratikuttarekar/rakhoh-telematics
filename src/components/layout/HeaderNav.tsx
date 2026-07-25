@@ -1,6 +1,6 @@
 import React from 'react';
 import { ViewMode, UserRole } from '../../types/fsm';
-import { LayoutDashboard, Smartphone, Columns, Play, Pause, RotateCcw, LogOut, UserPlus, History } from 'lucide-react';
+import { LayoutDashboard, Smartphone, Columns, Play, Pause, RotateCcw, LogOut, UserPlus, History, Users } from 'lucide-react';
 
 interface HeaderNavProps {
   viewMode: ViewMode;
@@ -13,6 +13,7 @@ interface HeaderNavProps {
   onLogout: () => void;
   onOpenAddEngineer?: () => void;
   onOpenHistoricalLogs?: () => void;
+  onOpenUserManagement?: () => void;
 }
 
 export const HeaderNav: React.FC<HeaderNavProps> = ({
@@ -26,6 +27,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   onLogout,
   onOpenAddEngineer,
   onOpenHistoricalLogs,
+  onOpenUserManagement,
 }) => {
   return (
     <header className="w-full glass-panel px-4 sm:px-6 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 z-30 sticky top-0">
@@ -85,6 +87,17 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
       {/* Live Stream Telematics Controller & Admin Actions */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {onOpenUserManagement && (
+          <button
+            onClick={onOpenUserManagement}
+            className="px-3 sm:px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-bold transition flex items-center gap-1.5 shadow-md"
+            title="Classification / User Accounts Console"
+          >
+            <Users className="w-4 h-4 text-cyan-400" />
+            <span className="hidden sm:inline">Users Console</span>
+          </button>
+        )}
+
         {onOpenHistoricalLogs && (
           <button
             onClick={onOpenHistoricalLogs}

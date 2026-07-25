@@ -123,14 +123,56 @@ export class FirebaseService {
     };
   }
 
-  // Push User creation to Firestore /users/{uid}
+  // Push User creation to Fire  // Push User creation to Firestore /users/{uid} and RTDB /users/{uid} & /status/{uid}
   public async pushUser(user: User) {
     if (!this.isEnabled() || !db) return;
+    const cleanEmail = user.email.trim().toLowerCase();
+    const cleanUser = {
+      ...user,
+      email: cleanEmail,
+      updatedAt: new Date().toISOString(),
+    };
+
     try {
       const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, user);
+      await setDoc(userDocRef, cleanUser, { merge: true });
+
+      if (rtdb) {
+        const rtdbUserRef = ref(rtdb, `users/${user.uid}`);
+        const rtdbStatusRef = ref(rtdb, `status/${user.uid}`);
+        const statusPayload = {
+          uid: user.uid,
+          engineerId: user.engineerId,
+          name: user.name,
+          email: cleanEmail,
+          role: user.role,
+          phone: user.phone,
+          status: user.status || 'online',
+          lastSeen: Date.now(),
+        };
+        await set(rtdbUserRef, statusPayload);
+        await set(rtdbStatusRef, statusPayload);
+      }
     } catch (err: any) {
-      console.warn('Firestore User Push Error:', err.message);
+      console.warn('Firestore/RTDB User Push Error:', err.message);
+    }
+  }
+
+  // Delete User document from Firestore /users/{uid} and RTDB /status/{uid}
+  public async deleteUser(uid: string) {
+    if (!this.isEnabled() || !db) return;
+    try {
+      const userDocRef = doc(db, 'users', uid);
+      await deleteDoc(userDocRef);
+
+      if (rtdb) {
+        const rtdbUserRef = ref(rtdb, `users/${uid}`);
+        const rtdbStatusRef = ref(rtdb, `status/${uid}`);
+        await set(rtdbUserRef, null);
+        await set(rtdbStatusRef, null);
+      }
+    } catch (err: any) {
+      console.warn('User Delete Error:', err.message);
     }
   }
 

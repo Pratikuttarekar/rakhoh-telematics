@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { User, Site } from '../../types/fsm';
-import { MapPin, Calendar, UserCheck, Phone, Building, PlusCircle, ChevronDown, X } from 'lucide-react';
+import { MapPin, Calendar, UserCheck, Phone, Building, PlusCircle, ChevronDown, X, Navigation } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
+import { GeocodingAddressInput } from './GeocodingAddressInput';
 
 interface DispatchModalProps {
   users: User[];
@@ -162,20 +163,22 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
             </div>
           </div>
 
-          {/* Site Address */}
+          {/* Interactive Geocoding Address Search */}
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">Site Address</label>
-            <div className="relative">
-              <MapPin className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-              <input
-                type="text"
-                required
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Plot Address, Industrial Zone, City..."
-                className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 focus:border-cyan-500 focus:outline-none"
-              />
-            </div>
+            <label className="block text-slate-400 font-semibold mb-1 flex items-center justify-between">
+              <span>Site Location & Address</span>
+              <span className="text-[10px] text-cyan-400 font-mono">Live Nominatim Geocoder</span>
+            </label>
+            <GeocodingAddressInput
+              address={address}
+              setAddress={setAddress}
+              onSelectCoordinates={(lat, lng, formattedAddress) => {
+                setLatitude(lat);
+                setLongitude(lng);
+                setAddress(formattedAddress);
+              }}
+              placeholder="Type plant name, landmark, or city (e.g. Pune, NTPC Delhi)..."
+            />
           </div>
 
           {/* Coordinates */}

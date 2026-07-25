@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Site, User } from '../../types/fsm';
 import { Briefcase, Calendar, MapPin, Edit3, Trash2, PlusCircle, X, Check, ShieldAlert, Building, UserCheck } from 'lucide-react';
 import { fsmStore } from '../../services/store';
+import { GeocodingAddressInput } from './GeocodingAddressInput';
 
 interface ManageDispatchesModalProps {
   engineerUser: User | null;
@@ -162,12 +163,19 @@ export const ManageDispatchesModal: React.FC<ManageDispatchesModalProps> = ({
                     </div>
 
                     <div className="text-xs">
-                      <label className="block text-slate-400 mb-1">Site Address</label>
-                      <input
-                        type="text"
-                        value={editAddress}
-                        onChange={(e) => setEditAddress(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-200"
+                      <label className="block text-slate-400 mb-1 flex items-center justify-between">
+                        <span>Site Location & Address</span>
+                        <span className="text-[10px] text-cyan-400 font-mono">Live Nominatim Geocoder</span>
+                      </label>
+                      <GeocodingAddressInput
+                        address={editAddress}
+                        setAddress={setEditAddress}
+                        onSelectCoordinates={(lat, lng, formattedAddress) => {
+                          setEditLatitude(lat);
+                          setEditLongitude(lng);
+                          setEditAddress(formattedAddress);
+                        }}
+                        placeholder="Search landmark, plant name or address..."
                       />
                     </div>
 

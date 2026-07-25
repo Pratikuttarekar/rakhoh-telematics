@@ -213,6 +213,24 @@ class FSMStore {
     }
   }
 
+  public updateSiteDetails(siteId: string, updates: Partial<Site>) {
+    const idx = this.sites.findIndex((s) => s.siteId === siteId);
+    if (idx !== -1) {
+      this.sites[idx] = {
+        ...this.sites[idx],
+        ...updates,
+      };
+      firebaseService.pushSiteStatus(siteId, updates);
+      this.notify();
+    }
+  }
+
+  public deleteSite(siteId: string) {
+    this.sites = this.sites.filter((s) => s.siteId !== siteId);
+    firebaseService.deleteSite(siteId);
+    this.notify();
+  }
+
   public markAlertAsRead(alertId: string) {
     this.arrivalAlerts = this.arrivalAlerts.map((alert) =>
       alert.alertId === alertId ? { ...alert, isReadByAdmin: true } : alert

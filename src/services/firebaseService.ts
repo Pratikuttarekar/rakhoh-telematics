@@ -1,5 +1,5 @@
 import { db, rtdb, isFirebaseConfigured } from './firebase';
-import { collection, onSnapshot, query, where, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ref, onValue, set } from 'firebase/database';
 import { User, Site, ArrivalAlert, LiveTracking, Report } from '../types/fsm';
 
@@ -224,6 +224,17 @@ export class FirebaseService {
       await setDoc(dispatchDocRef, dispatchRecord);
     } catch (err: any) {
       console.warn('Firestore Dispatch Push Error:', err.message);
+    }
+  }
+
+  // Delete Site from Firestore /sites/{siteId}
+  public async deleteSite(siteId: string) {
+    if (!this.isEnabled() || !db) return;
+    try {
+      const siteDocRef = doc(db, 'sites', siteId);
+      await deleteDoc(siteDocRef);
+    } catch (err: any) {
+      console.warn('Firestore Site Delete Error:', err.message);
     }
   }
 }

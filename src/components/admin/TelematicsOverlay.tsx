@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, LiveTracking, Site } from '../../types/fsm';
-import { Gauge, Battery, Navigation, Clock, MapPin, Phone, ShieldCheck, Play, Pause, RotateCcw, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Gauge, Battery, Navigation, Clock, MapPin, Phone, ShieldCheck, Play, Pause, RotateCcw, ChevronUp, ChevronDown, X, Briefcase } from 'lucide-react';
 import { getEngineerColor } from '../admin/GlobalMapCanvas';
 
 interface TelematicsOverlayProps {
@@ -10,6 +10,7 @@ interface TelematicsOverlayProps {
   isSimulating: boolean;
   onToggleSimulation: () => void;
   onResetSimulation: () => void;
+  onOpenManageDispatches?: (user: User) => void;
   onClose: () => void;
 }
 
@@ -20,6 +21,7 @@ export const TelematicsOverlay: React.FC<TelematicsOverlayProps> = ({
   isSimulating,
   onToggleSimulation,
   onResetSimulation,
+  onOpenManageDispatches,
   onClose,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -82,7 +84,7 @@ export const TelematicsOverlay: React.FC<TelematicsOverlayProps> = ({
       {/* Collapsed Compact Summary Bar */}
       {!isExpanded && (
         <div className="pt-2 flex items-center justify-between text-[11px] font-semibold">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className="flex items-center gap-1 text-amber-300 font-extrabold">
               <Gauge className="w-3.5 h-3.5 text-amber-400" />
               {track.speedKmh} km/h
@@ -93,12 +95,22 @@ export const TelematicsOverlay: React.FC<TelematicsOverlayProps> = ({
             </span>
           </div>
 
-          <button
-            onClick={() => setIsExpanded(true)}
-            className="text-[10px] text-cyan-400 hover:text-cyan-300 underline font-bold"
-          >
-            Details
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenManageDispatches && (
+              <button
+                onClick={() => onOpenManageDispatches(user)}
+                className="text-[10px] text-emerald-400 hover:text-emerald-300 underline font-bold"
+              >
+                Dispatches
+              </button>
+            )}
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="text-[10px] text-cyan-400 hover:text-cyan-300 underline font-bold"
+            >
+              Details
+            </button>
+          </div>
         </div>
       )}
 
@@ -157,12 +169,22 @@ export const TelematicsOverlay: React.FC<TelematicsOverlayProps> = ({
             )}
           </div>
 
-          {/* Simulation Motion Controls */}
+          {/* Simulation Motion & Manage Dispatches Actions Bar */}
           <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-1 text-[10px] text-slate-400">
-              <ShieldCheck className="w-3 h-3 text-emerald-400" />
-              RTDB Live
-            </div>
+            {onOpenManageDispatches ? (
+              <button
+                onClick={() => onOpenManageDispatches(user)}
+                className="px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 text-[10px] font-bold transition flex items-center gap-1"
+                title="Manage active job dispatches"
+              >
+                <Briefcase className="w-3 h-3" /> Dispatches
+              </button>
+            ) : (
+              <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                RTDB Live
+              </div>
+            )}
 
             <div className="flex items-center gap-1.5">
               <button

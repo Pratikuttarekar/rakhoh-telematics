@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { ErrorBoundary } from './components/auth/ErrorBoundary';
 import { HistoricalLogsModal } from './components/admin/HistoricalLogsModal';
+import { ManageDispatchesModal } from './components/admin/ManageDispatchesModal';
 
 function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
   const { authRole, authEmail, currentUserDoc, logout } = useAuth();
@@ -40,6 +41,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isAddEngineerOpen, setIsAddEngineerOpen] = useState(false);
   const [isHistoricalLogsOpen, setIsHistoricalLogsOpen] = useState(false);
+  const [managingEngineerUser, setManagingEngineerUser] = useState<User | null>(null);
 
   useEffect(() => {
     setViewModeState(initialViewMode);
@@ -162,6 +164,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
                 isSimulating={isSimulating}
                 onToggleSimulation={() => fsmStore.toggleMotionSimulation()}
                 onResetSimulation={() => fsmStore.resetSimulation()}
+                onOpenManageDispatches={(engUser) => setManagingEngineerUser(engUser)}
                 onClose={() => fsmStore.setSelectedEngineerId(null)}
               />
             </div>
@@ -222,6 +225,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
                   isSimulating={isSimulating}
                   onToggleSimulation={() => fsmStore.toggleMotionSimulation()}
                   onResetSimulation={() => fsmStore.resetSimulation()}
+                  onOpenManageDispatches={(engUser) => setManagingEngineerUser(engUser)}
                   onClose={() => fsmStore.setSelectedEngineerId(null)}
                 />
               </div>
@@ -270,6 +274,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
       <AddEngineerModal
         isOpen={isAddEngineerOpen}
         onClose={() => setIsAddEngineerOpen(false)}
+        existingUsersCount={users.length}
         onEngineerAdded={(newEng) => {
           setUsers((prev) => [newEng, ...prev]);
         }}
@@ -280,6 +285,18 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
         users={users}
         isOpen={isHistoricalLogsOpen}
         onClose={() => setIsHistoricalLogsOpen(false)}
+      />
+
+      <ManageDispatchesModal
+        engineerUser={managingEngineerUser}
+        sites={sites}
+        users={users}
+        isOpen={Boolean(managingEngineerUser)}
+        onClose={() => setManagingEngineerUser(null)}
+        onOpenNewDispatch={(engUid) => {
+          if (engUid) fsmStore.setSelectedEngineerId(engUid);
+          setIsDispatchOpen(true);
+        }}
       />
     </div>
   );

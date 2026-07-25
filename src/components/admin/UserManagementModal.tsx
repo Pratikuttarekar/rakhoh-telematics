@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../../types/fsm';
-import { Users, Search, Edit3, Trash2, UserPlus, X, ShieldCheck, User as UserIcon, Mail, Phone, Check } from 'lucide-react';
+import { Users, Search, Edit3, Trash2, UserPlus, X, ShieldCheck, User as UserIcon, Mail, Phone, Check, Lock, AlertTriangle } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
 
 interface UserManagementModalProps {
@@ -16,44 +16,68 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   onClose,
   onOpenAddUser,
 }) => {
+  const [activeTab, setActiveTab] = useState<'engineer' | 'admin'>('engineer');
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  
+  // Edit Account Form state
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editName, setEditName] = useState('');
   const [editRole, setEditRole] = useState<UserRole>('engineer');
   const [editPhone, setEditPhone] = useState('');
   const [editEngineerId, setEditEngineerId] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPasswordNote, setEditPasswordNote] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const [deleteConfirmUid, setDeleteConfirmUid] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const filteredUsers = users.filter(
+  // Filter users by tab role & search query
+  const engineerUsers = users.filter((u) => u.role === 'engineer' || !u.role);
+  const adminUsers = users.filter((u) => u.role === 'admin');
+
+  const displayedUsers = (activeTab === 'engineer' ? engineerUsers : adminUsers).filter(
     (u) =>
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.engineerId.toLowerCase().includes(searchQuery.toLowerCase())
+      (u.engineerId && u.engineerId.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleStartEdit = (user: User) => {
-    setEditingUserId(user.uid);
+    setEditingUser(user);
     setEditName(user.name);
     setEditRole(user.role || 'engineer');
     setEditPhone(user.phone || '');
     setEditEngineerId(user.engineerId || '');
+    setEditEmail(user.email);
+    setEditPasswordNote('');
   };
 
-  const handleSaveEdit = async (user: User) => {
-    const updatedUser: User = {
-      ...user,
-      name: editName.trim(),
-      role: editRole,
-      phone: editPhone.trim(),
-      engineerId: editEngineerId.trim(),
-      updatedAt: new Date().toISOString(),
-    };
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setIsSaving(true);
 
-    await firebaseService.pushUser(updatedUser);
-    setEditingUserId(null);
+    try {
+      const updatedUser: User = {
+        ...editingUser,
+        name: editName.trim(),
+        role: editRole,
+        phone: editPhone.trim() || '+919876543210',
+        engineerId: editEngineerId.trim() || editingUser.engineerId,
+        email: editEmail.trim().toLowerCase(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Push to Firestore /users/{uid} and RTDB /users & /status
+      await firebaseService.pushUser(updatedUser);
+      setEditingUser(null);
+    } catch (err: any) {
+      console.error('Failed to update account:', err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDelete = async (uid: string) => {
@@ -71,8 +95,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-extrabold text-lg text-slate-100">Classification / Users Console</h3>
-              <p className="text-xs text-slate-400">Manage real-time Firestore user profiles, access credentials & roles</p>
+              <h3 className="font-extrabold text-lg text-slate-100">Classification & User Management</h3>
+              <p className="text-xs text-slate-400">Manage real-time Firestore profiles, credentials & access roles</p>
             </div>
           </div>
 
@@ -84,7 +108,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
               }}
               className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md transition flex items-center gap-1.5"
             >
-              <UserPlus className="w-4 h-4" /> + Add User Account
+              <UserPlus className="w-4 h-4" /> + Add Account
             </button>
 
             <button onClick={onClose} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">
@@ -93,106 +117,67 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="my-4 relative">
-          <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, email, or employee ID..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
-          />
+        {/* Dual Role Classification Tabs (Engineers vs Admins) */}
+        <div className="flex items-center justify-between my-4 gap-3 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2 bg-slate-900/80 p-1 rounded-2xl border border-slate-800 text-xs font-bold">
+            <button
+              onClick={() => setActiveTab('engineer')}
+              className={`px-4 py-2 rounded-xl transition flex items-center gap-2 ${
+                activeTab === 'engineer'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <UserIcon className="w-4 h-4" /> Field Engineers ({engineerUsers.length})
+            </button>
+
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`px-4 py-2 rounded-xl transition flex items-center gap-2 ${
+                activeTab === 'admin'
+                  ? 'bg-blue-500 text-slate-950 shadow-md font-extrabold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4" /> System Admins ({adminUsers.length})
+            </button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative flex-1 max-w-xs">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, email, ID..."
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
+            />
+          </div>
         </div>
 
-        {/* Users Directory Table */}
+        {/* Users Table View */}
         <div className="flex-1 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/40">
           <table className="w-full text-left text-xs text-slate-200 border-collapse">
             <thead>
               <tr className="bg-slate-900 border-b border-slate-800 text-slate-400 font-bold uppercase text-[10px]">
-                <th className="p-3">User & ID</th>
+                <th className="p-3">User & Employee ID</th>
                 <th className="p-3">Username / Email</th>
-                <th className="p-3">Assigned Role</th>
+                <th className="p-3">Role</th>
                 <th className="p-3">Phone</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
-              {filteredUsers.length === 0 ? (
+              {displayedUsers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="text-center py-8 text-slate-500">
-                    No registered user accounts found in Firestore `/users`.
+                    No registered {activeTab === 'engineer' ? 'field engineers' : 'system admins'} found matching search criteria.
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => {
-                  const isEditing = editingUserId === user.uid;
+                displayedUsers.map((user) => {
                   const isDeleting = deleteConfirmUid === user.uid;
-
-                  if (isEditing) {
-                    return (
-                      <tr key={user.uid} className="bg-slate-900/90">
-                        <td className="p-3">
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            placeholder="Full Name"
-                            className="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-slate-200"
-                          />
-                          <input
-                            type="text"
-                            value={editEngineerId}
-                            onChange={(e) => setEditEngineerId(e.target.value)}
-                            placeholder="ID e.g. 178"
-                            className="w-full mt-1 px-2 py-1 bg-slate-950 border border-slate-800 rounded text-cyan-400 font-mono text-[10px]"
-                          />
-                        </td>
-
-                        <td className="p-3 font-mono text-slate-400">
-                          {user.email}
-                        </td>
-
-                        <td className="p-3">
-                          <select
-                            value={editRole}
-                            onChange={(e) => setEditRole(e.target.value as UserRole)}
-                            className="px-2 py-1 bg-slate-950 border border-slate-800 rounded text-slate-200 text-xs"
-                          >
-                            <option value="engineer">Field Engineer</option>
-                            <option value="admin">System Admin</option>
-                          </select>
-                        </td>
-
-                        <td className="p-3">
-                          <input
-                            type="text"
-                            value={editPhone}
-                            onChange={(e) => setEditPhone(e.target.value)}
-                            placeholder="+919876543210"
-                            className="w-full px-2 py-1 bg-slate-950 border border-slate-800 rounded text-slate-200"
-                          />
-                        </td>
-
-                        <td className="p-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => setEditingUserId(null)}
-                              className="px-2.5 py-1 rounded bg-slate-800 text-slate-300 text-[10px] font-bold"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={() => handleSaveEdit(user)}
-                              className="px-3 py-1 rounded bg-cyan-500 text-slate-950 text-[10px] font-extrabold flex items-center gap-1"
-                            >
-                              <Check className="w-3 h-3" /> Save
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  }
 
                   return (
                     <tr key={user.uid} className="hover:bg-slate-800/50 transition">
@@ -201,7 +186,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           <img
                             src={user.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
                             alt={user.name}
-                            className="w-7 h-7 rounded-full object-cover border border-cyan-500/40"
+                            className="w-8 h-8 rounded-full object-cover border border-cyan-500/40 shrink-0"
                           />
                           <div>
                             <div className="font-bold text-slate-100">{user.name}</div>
@@ -232,7 +217,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                       <td className="p-3 text-right">
                         {isDeleting ? (
                           <div className="flex items-center justify-end gap-1.5">
-                            <span className="text-[10px] text-rose-300 font-bold">Delete profile?</span>
+                            <span className="text-[10px] text-rose-300 font-bold">Confirm delete?</span>
                             <button
                               onClick={() => setDeleteConfirmUid(null)}
                               className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]"
@@ -241,27 +226,26 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                             </button>
                             <button
                               onClick={() => handleDelete(user.uid)}
-                              className="px-2 py-0.5 rounded bg-rose-500 text-white text-[10px] font-bold"
+                              className="px-2.5 py-0.5 rounded bg-rose-500 text-white text-[10px] font-bold"
                             >
-                              Yes
+                              Yes, Delete
                             </button>
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => handleStartEdit(user)}
-                              className="p-1 text-cyan-400 hover:text-cyan-300 hover:bg-slate-800 rounded transition"
-                              title="Edit User"
+                              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 font-bold transition flex items-center gap-1 text-[11px]"
                             >
-                              <Edit3 className="w-4 h-4" />
+                              <Edit3 className="w-3.5 h-3.5" /> Edit Account
                             </button>
 
                             <button
                               onClick={() => setDeleteConfirmUid(user.uid)}
-                              className="p-1 text-rose-400 hover:text-rose-300 hover:bg-slate-800 rounded transition"
-                              title="Delete Profile"
+                              className="px-2 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 font-bold transition flex items-center gap-1 text-[11px]"
+                              title="Delete or Deactivate Account"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" /> Deactivate
                             </button>
                           </div>
                         )}
@@ -273,6 +257,113 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Embedded Edit Account Modal Overlay */}
+        {editingUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+            <div className="w-full max-w-md glass-panel-glow rounded-3xl p-6 border border-cyan-500/40 text-slate-100 shadow-2xl">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Edit3 className="w-5 h-5 text-cyan-400" />
+                  <h4 className="font-bold text-base text-slate-100">Edit Account: #{editingUser.engineerId}</h4>
+                </div>
+                <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEdit} className="mt-4 space-y-3 text-xs">
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 focus:border-cyan-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Employee ID</label>
+                  <input
+                    type="text"
+                    required
+                    value={editEngineerId}
+                    onChange={(e) => setEditEngineerId(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-cyan-400 font-mono font-bold focus:border-cyan-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Username / Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 focus:border-cyan-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 focus:border-cyan-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Assigned Role Permission</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditRole('engineer')}
+                      className={`py-2 rounded-xl text-xs font-extrabold transition border ${
+                        editRole === 'engineer'
+                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                          : 'bg-slate-900 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      Field Engineer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditRole('admin')}
+                      className={`py-2 rounded-xl text-xs font-extrabold transition border ${
+                        editRole === 'admin'
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/50'
+                          : 'bg-slate-900 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      System Admin
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold shadow-lg transition flex items-center gap-1.5"
+                  >
+                    {isSaving ? 'Saving...' : 'Save Account Profile'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -109,30 +109,21 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
         )}
       </div>
 
-      {/* Ledger, Users & Reports Action Bar */}
-      <div className="grid grid-cols-3 gap-1.5">
-        {onOpenUserManagement && (
-          <button
-            onClick={onOpenUserManagement}
-            className="px-2 py-1.5 text-[10px] font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 transition border border-cyan-500/30 flex items-center justify-center gap-1"
-            title="User Classification Console"
-          >
-            <Users className="w-3 h-3 text-cyan-400" /> Users
-          </button>
-        )}
+      {/* Ledger & Reports Action Bar */}
+      <div className="grid grid-cols-2 gap-2">
         {onOpenHistoricalLogs && (
           <button
             onClick={onOpenHistoricalLogs}
-            className="px-2 py-1.5 text-[10px] font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-400 transition border border-cyan-500/30 flex items-center justify-center gap-1"
+            className="px-3 py-1.5 text-[11px] font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-400 transition border border-cyan-500/30 flex items-center justify-center gap-1"
           >
-            <History className="w-3 h-3 text-cyan-400" /> Ledger
+            <History className="w-3.5 h-3.5 text-cyan-400" /> Job Ledger
           </button>
         )}
         <button
           onClick={onOpenReport}
-          className="px-2 py-1.5 text-[10px] font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 transition border border-slate-800 flex items-center justify-center gap-1"
+          className="px-3 py-1.5 text-[11px] font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 transition border border-slate-800 flex items-center justify-center gap-1"
         >
-          Reports
+          Export Reports
         </button>
       </div>
 

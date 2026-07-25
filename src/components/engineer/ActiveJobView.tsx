@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Site, LiveTracking } from '../../types/fsm';
 import { Navigation, MapPin, Gauge, Battery, ArrowLeft, CheckCircle2, ShieldCheck, Play, Pause, Radio } from 'lucide-react';
-import { isWithinGeofence } from '../../utils/geoUtils';
+import { isWithinGeofence, calculateHaversineDistanceKm } from '../../utils/geoUtils';
+import { firebaseService } from '../../services/firebaseService';
 
 interface ActiveJobViewProps {
   site: Site;
@@ -22,6 +23,62 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
   onArrived,
   onOpenSignoff,
 }) => {
+  const [isLiveGpsTracking, setIsLiveGpsTracking] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
+
+  const toggleLiveGps = () => {
+    if (isLiveGpsTracking) {
+      if (watchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      setIsLiveGpsTracking(false);
+      onToggleSimulation();
+    } else {
+      if ('geolocation' in navigator) {
+        setIsLiveGpsTracking(true);
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 25;
+
+            const remainingKm = calculateHaversineDistanceKm(lat, lng, site.location.latitude, site.location.longitude);
+
+            const livePayload: LiveTracking = {
+              engineerId: track.engineerId,
+              engineerName: track.engineerName,
+              latitude: lat,
+              longitude: lng,
+              speedKmh: speed,
+              heading: pos.coords.heading || 0,
+              batteryPercentage: 92,
+              isOnline: true,
+              travelledDistanceKm: 5.2,
+              remainingDistanceKm: Number(remainingKm.toFixed(2)),
+              etaMinutes: Math.round((remainingKm / 40) * 60),
+              lastUpdated: Date.now(),
+            };
+
+            firebaseService.pushLiveTracking(track.engineerId, livePayload);
+          },
+          (err) => {
+            console.warn('HTML5 Geolocation Note:', err.message);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      }
+      onToggleSimulation();
+    }
+  };
   const arrivedWithinGeofence = isWithinGeofence(
     track.latitude,
     track.longitude,
@@ -81,13 +138,13 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
           </div>
 
           <button
-            onClick={onToggleSimulation}
+            onClick={toggleLiveGps}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
-              isSimulating ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-cyan-500 text-slate-950 shadow-md'
+              isLiveGpsTracking || isSimulating ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-cyan-500 text-slate-950 shadow-md'
             }`}
           >
-            {isSimulating ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            {isSimulating ? 'Pause GPS' : 'Start GPS'}
+            {isLiveGpsTracking || isSimulating ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            {isLiveGpsTracking || isSimulating ? 'Pause GPS' : 'Start GPS'}
           </button>
         </div>
 

@@ -194,7 +194,17 @@ export class FirebaseService {
     if (!this.isEnabled() || !db) return;
     try {
       const siteDocRef = doc(db, 'sites', site.siteId);
-      await setDoc(siteDocRef, site);
+      const payload = {
+        ...site,
+        assignedEngineerId: site.assignedEngineerId,
+        assignedEngineerName: site.assignedEngineerName,
+        latitude: site.location.latitude,
+        longitude: site.location.longitude,
+        clientName: site.clientName,
+        status: site.status,
+        updatedAt: new Date().toISOString(),
+      };
+      await setDoc(siteDocRef, payload, { merge: true });
     } catch (err: any) {
       console.warn('Firestore Site Push Error:', err.message);
     }

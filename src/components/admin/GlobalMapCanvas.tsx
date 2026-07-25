@@ -195,7 +195,11 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
 
       for (const user of users) {
         const track = liveTracking[user.uid];
-        const assignedSite = sites.find((s) => s.siteId === user.currentSiteId);
+        const assignedSite = sites.find(
+          (s) =>
+            (s.assignedEngineerId === user.uid || s.assignedEngineerId === user.engineerId || s.siteId === user.currentSiteId) &&
+            s.status !== 'completed'
+        );
 
         if (track && assignedSite) {
           const startLat = track.latitude;

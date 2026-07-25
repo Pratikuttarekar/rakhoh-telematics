@@ -27,6 +27,14 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const [createdUserCredentials, setCreatedUserCredentials] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    pass: string;
+    role: string;
+  } | null>(null);
+
   const nextEngineerId = (178 + existingUsersCount + 1).toString();
 
   // Clear all inputs on modal open / state reset
@@ -39,6 +47,7 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
       setRole('engineer');
       setErrorMessage(null);
       setSuccessMessage(null);
+      setCreatedUserCredentials(null);
     }
   }, [isOpen]);
 
@@ -95,10 +104,15 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
       // Trigger UI callback
       onEngineerAdded(newUser);
 
+      setCreatedUserCredentials({
+        id: `#${nextEngineerId}`,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        pass: password.trim(),
+        role: role.toUpperCase(),
+      });
+
       setSuccessMessage(`Account for ${name} (${role.toUpperCase()}) successfully created!`);
-      setTimeout(() => {
-        onClose();
-      }, 1200);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to create user account.');
     } finally {
@@ -136,14 +150,58 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
           </div>
         )}
 
-        {successMessage && (
-          <div className="mt-4 p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {successMessage}
-          </div>
-        )}
+        {createdUserCredentials ? (
+          <div className="mt-4 p-4 rounded-2xl bg-slate-900 border border-emerald-500/50 space-y-3 animate-in fade-in">
+            <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm border-b border-slate-800 pb-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <span>Account Credentials Generated</span>
+            </div>
 
-        <form onSubmit={handleSubmit} autoComplete="off" className="mt-4 space-y-3.5 text-xs">
+            <div className="space-y-2 text-xs font-mono">
+              <div className="flex justify-between bg-slate-950 p-2 rounded-xl border border-slate-800">
+                <span className="text-slate-400">System ID:</span>
+                <span className="font-bold text-cyan-400">{createdUserCredentials.id}</span>
+              </div>
+
+              <div className="flex justify-between bg-slate-950 p-2 rounded-xl border border-slate-800">
+                <span className="text-slate-400">Full Name:</span>
+                <span className="font-bold text-slate-200">{createdUserCredentials.name}</span>
+              </div>
+
+              <div className="flex justify-between bg-slate-950 p-2 rounded-xl border border-slate-800">
+                <span className="text-slate-400">Username / Email:</span>
+                <span className="font-bold text-emerald-300">{createdUserCredentials.email}</span>
+              </div>
+
+              <div className="flex justify-between bg-slate-950 p-2 rounded-xl border border-slate-800">
+                <span className="text-slate-400">Assigned Password:</span>
+                <span className="font-bold text-amber-300">{createdUserCredentials.pass}</span>
+              </div>
+
+              <div className="flex justify-between bg-slate-950 p-2 rounded-xl border border-slate-800">
+                <span className="text-slate-400">Assigned Role:</span>
+                <span className="font-bold text-blue-400">{createdUserCredentials.role}</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400 italic text-center pt-1">
+              Share these login credentials directly with the real field engineer to log in via the mobile portal.
+            </p>
+
+            <button
+              onClick={() => {
+                navigator.clipboard?.writeText(
+                  `Rakhoh Telematics Login Credentials:\nEmail: ${createdUserCredentials.email}\nPassword: ${createdUserCredentials.pass}\nRole: ${createdUserCredentials.role}`
+                );
+                onClose();
+              }}
+              className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg transition"
+            >
+              Copy Credentials & Close
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} autoComplete="off" className="mt-4 space-y-3.5 text-xs">
           {/* Dynamic Auto-Generated ID Banner */}
           <div>
             <label className="block text-slate-400 font-semibold mb-1">System Generated ID</label>
@@ -279,6 +337,7 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

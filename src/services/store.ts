@@ -34,47 +34,26 @@ class FSMStore {
     if (firebaseService.isEnabled()) {
       firebaseService.subscribeToLiveUpdates({
         onUsersUpdate: (liveUsers) => {
-          // Merge live Firestore engineers with INITIAL_USERS (7 demo engineers)
-          const mergedMap = new Map<string, User>();
-          INITIAL_USERS.forEach((u) => mergedMap.set(u.uid, u));
-          liveUsers.forEach((u) => {
-            if (u.role === 'engineer' || !u.role) {
-              mergedMap.set(u.uid, u);
-            }
-          });
-          this.users = Array.from(mergedMap.values());
-          
+          this.users = liveUsers.filter((u) => u.role === 'engineer' || !u.role);
           if (!this.selectedEngineerId && this.users.length > 0) {
             this.selectedEngineerId = this.users[0].uid;
           }
           this.notify();
         },
         onSitesUpdate: (liveSites) => {
-          const mergedSites = new Map<string, Site>();
-          INITIAL_SITES.forEach((s) => mergedSites.set(s.siteId, s));
-          liveSites.forEach((s) => mergedSites.set(s.siteId, s));
-          this.sites = Array.from(mergedSites.values());
+          this.sites = liveSites;
           this.notify();
         },
         onAlertsUpdate: (liveAlerts) => {
-          const mergedAlerts = new Map<string, ArrivalAlert>();
-          INITIAL_ARRIVAL_ALERTS.forEach((a) => mergedAlerts.set(a.alertId, a));
-          liveAlerts.forEach((a) => mergedAlerts.set(a.alertId, a));
-          this.arrivalAlerts = Array.from(mergedAlerts.values());
+          this.arrivalAlerts = liveAlerts;
           this.notify();
         },
         onReportsUpdate: (liveReports) => {
-          const mergedReports = new Map<string, Report>();
-          INITIAL_REPORTS.forEach((r) => mergedReports.set(r.reportId, r));
-          liveReports.forEach((r) => mergedReports.set(r.reportId, r));
-          this.reports = Array.from(mergedReports.values());
+          this.reports = liveReports;
           this.notify();
         },
         onLiveTrackingUpdate: (liveTrackingData) => {
-          this.liveTracking = {
-            ...INITIAL_LIVE_TRACKING,
-            ...liveTrackingData,
-          };
+          this.liveTracking = liveTrackingData;
           this.notify();
         },
       });

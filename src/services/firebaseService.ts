@@ -27,34 +27,21 @@ export class FirebaseService {
 
     console.log('FSM Platform: Querying Firestore /users (role == engineer) & RTDB /live_locations...');
 
-    // 1. Strict Firestore /users Query for role == 'engineer'
+    // 1. Direct Firestore /users Collection Listener
     const usersRef = collection(db, 'users');
-    const engineerQuery = query(usersRef, where('role', '==', 'engineer'));
-    
     const unsubUsers = onSnapshot(
-      engineerQuery,
+      usersRef,
       (snapshot) => {
-        const engineers = snapshot.docs.map((docSnap) => {
+        const allUsers = snapshot.docs.map((docSnap) => {
           const data = docSnap.data() as User;
           return {
             ...data,
             uid: docSnap.id || data.uid,
           };
         });
-        callbacks.onUsersUpdate(engineers);
+        callbacks.onUsersUpdate(allUsers);
       },
-      (err) => {
-        // If index is building or query unsupported, fall back to whole /users snapshot filtered in JS
-        onSnapshot(
-          usersRef,
-          (snapshot) => {
-            const allUsers = snapshot.docs.map((docSnap) => docSnap.data() as User);
-            const engineers = allUsers.filter((u) => u.role === 'engineer');
-            callbacks.onUsersUpdate(engineers);
-          },
-          (allErr) => console.warn('Firestore Users Listener Warning:', allErr.message)
-        );
-      }
+      (err) => console.warn('Firestore Users Listener Warning:', err.message)
     );
 
     // 2. Firestore /sites Collection Listener
@@ -154,7 +141,8 @@ export class FirebaseService {
         await set(rtdbStatusRef, statusPayload);
       }
     } catch (err: any) {
-      console.warn('Firestore/RTDB User Push Error:', err.message);
+      console.error('Firestore/RTDB User Push Error:', err.message);
+      throw new Error(`Failed to save engineer to database: ${err.message}`);
     }
   }
 

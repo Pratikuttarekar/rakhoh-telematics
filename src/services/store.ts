@@ -34,9 +34,12 @@ class FSMStore {
     if (firebaseService.isEnabled()) {
       firebaseService.subscribeToLiveUpdates({
         onUsersUpdate: (liveUsers) => {
-          this.users = liveUsers.filter((u) => u.role === 'engineer' || !u.role);
+          this.users = liveUsers;
           if (!this.selectedEngineerId && this.users.length > 0) {
-            this.selectedEngineerId = this.users[0].uid;
+            const firstEng = this.users.find((u) => u.role === 'engineer' || !u.role);
+            if (firstEng) {
+              this.selectedEngineerId = firstEng.uid;
+            }
           }
           this.notify();
         },

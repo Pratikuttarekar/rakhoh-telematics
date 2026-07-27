@@ -116,7 +116,7 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
         role: role.toUpperCase(),
       });
 
-      setSuccessMessage(`Account for ${name} (${role.toUpperCase()}) successfully created!`);
+      setSuccessMessage(`Engineer created successfully! Account for ${name} (${role.toUpperCase()}) saved to Firestore.`);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to create user account.');
     } finally {
@@ -147,6 +147,13 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {successMessage && (
+          <div className="mt-4 p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold text-center flex items-center justify-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{successMessage}</span>
+          </div>
+        )}
 
         {errorMessage && (
           <div className="mt-4 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold text-center">

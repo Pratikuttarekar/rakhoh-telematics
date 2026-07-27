@@ -54,7 +54,7 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
             heading: pos.coords.heading || 0,
             batteryPercentage: 92,
             isOnline: true,
-            travelledDistanceKm: 5.2,
+            travelledDistanceKm: 0,
             remainingDistanceKm: Number(remainingKm.toFixed(2)),
             etaMinutes: Math.round((remainingKm / 40) * 60),
             lastUpdated: Date.now(),
@@ -99,22 +99,30 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
       onToggleSimulation();
     }
   };
-  const arrivedWithinGeofence = isWithinGeofence(
+
+  const hasValidGps = Boolean(track && track.latitude && track.longitude && track.latitude !== 0);
+
+  const arrivedWithinGeofence = hasValidGps && (isWithinGeofence(
     track.latitude,
     track.longitude,
     site.location.latitude,
     site.location.longitude,
     100
-  ) || site.status === 'working' || site.status === 'completed';
+  ) || site.status === 'working' || site.status === 'completed');
 
   return (
     <div className="flex-1 flex flex-col p-4 space-y-4 overflow-y-auto">
-      {isAdmin && (
+      {isAdmin ? (
         <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-200 text-xs font-semibold flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
           <span>Admin Preview Mode - GPS tracking can only be initiated by assigned Field Engineers on their mobile devices.</span>
         </div>
-      )}
+      ) : !hasValidGps ? (
+        <div className="p-3 rounded-2xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-2 animate-pulse">
+          <Radio className="w-4 h-4 text-cyan-400 animate-spin" />
+          <span>Acquiring live GPS signal...</span>
+        </div>
+      ) : null}
 
       {/* Header Back Bar */}
       <div className="flex items-center justify-between">
@@ -212,7 +220,9 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
             Remaining Distance to Site
           </span>
           <span className="text-sm font-extrabold text-cyan-300">
-            {track.remainingDistanceKm} km ({Math.round(track.remainingDistanceKm * 1000)}m)
+            {hasValidGps
+              ? `${track.remainingDistanceKm} km (${Math.round(track.remainingDistanceKm * 1000)}m)`
+              : 'Acquiring GPS Signal...'}
           </span>
         </div>
 

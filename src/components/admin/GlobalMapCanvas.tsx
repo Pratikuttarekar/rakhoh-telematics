@@ -423,9 +423,9 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
           const track = liveTracking[user.uid];
           const color = getEngineerColor(user.uid);
           const isSelected = selectedEngineerId === user.uid;
-          const assignedSite = sites.find((s) => s.siteId === user.currentSiteId);
+          const assignedSite = sites.find((s) => (s.assignedEngineerId === user.uid || (user.engineerId && s.assignedEngineerId === user.engineerId) || s.siteId === user.currentSiteId) && s.status !== 'completed');
 
-          if (!track || !assignedSite) return null;
+          if (!track || !track.latitude || !track.longitude || track.latitude === 0 || !assignedSite) return null;
 
           const route = osrmRoutes[user.uid] || [
             [track.latitude, track.longitude],
@@ -489,7 +489,7 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
         {/* 3. LIVE ENGINEER MARKERS WITH HIGH VISIBILITY NAME TAGS */}
         {users.map((user) => {
           const track = liveTracking[user.uid];
-          if (!track) return null;
+          if (!track || !track.latitude || !track.longitude || track.latitude === 0) return null;
 
           const color = getEngineerColor(user.uid);
           const isSelected = selectedEngineerId === user.uid;

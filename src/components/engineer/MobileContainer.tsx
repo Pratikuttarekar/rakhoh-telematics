@@ -39,18 +39,18 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({
     );
   }
 
-  const track = liveTracking[currentUser.uid] || {
+  const track: LiveTracking = liveTracking[currentUser.uid] || {
     engineerId: currentUser.uid,
     engineerName: currentUser.name,
-    latitude: 18.6298,
-    longitude: 73.7997,
+    latitude: 0,
+    longitude: 0,
     speedKmh: 0,
     heading: 0,
     batteryPercentage: currentUser.deviceInfo?.batteryLevel || 90,
     isOnline: true,
-    travelledDistanceKm: 14.8,
-    remainingDistanceKm: 0.25,
-    etaMinutes: 2,
+    travelledDistanceKm: 0,
+    remainingDistanceKm: 0,
+    etaMinutes: 0,
     lastUpdated: Date.now(),
   };
 

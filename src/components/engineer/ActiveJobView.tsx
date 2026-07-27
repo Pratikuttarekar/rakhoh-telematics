@@ -23,16 +23,59 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
   onArrived,
   onOpenSignoff,
 }) => {
-  const [isLiveGpsTracking, setIsLiveGpsTracking] = useState(false);
+  const [isLiveGpsTracking, setIsLiveGpsTracking] = useState(true);
   const watchIdRef = useRef<number | null>(null);
 
+  const startGpsStream = () => {
+    if ('geolocation' in navigator) {
+      setIsLiveGpsTracking(true);
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 25;
+
+          const remainingKm = calculateHaversineDistanceKm(lat, lng, site.location.latitude, site.location.longitude);
+
+          const livePayload: LiveTracking = {
+            engineerId: track.engineerId,
+            engineerName: track.engineerName,
+            latitude: lat,
+            longitude: lng,
+            speedKmh: speed,
+            heading: pos.coords.heading || 0,
+            batteryPercentage: 92,
+            isOnline: true,
+            travelledDistanceKm: 5.2,
+            remainingDistanceKm: Number(remainingKm.toFixed(2)),
+            etaMinutes: Math.round((remainingKm / 40) * 60),
+            lastUpdated: Date.now(),
+          };
+
+          firebaseService.pushLiveTracking(track.engineerId, livePayload);
+        },
+        (err) => {
+          console.warn('HTML5 Geolocation Note:', err.message);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
+  };
+
   useEffect(() => {
+    // Automatically start high-accuracy GPS streaming when Active Job opens
+    startGpsStream();
+
     return () => {
       if (watchIdRef.current !== null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
     };
-  }, []);
+  }, [site.siteId]);
 
   const toggleLiveGps = () => {
     if (isLiveGpsTracking) {
@@ -43,39 +86,7 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
       setIsLiveGpsTracking(false);
       onToggleSimulation();
     } else {
-      if ('geolocation' in navigator) {
-        setIsLiveGpsTracking(true);
-        watchIdRef.current = navigator.geolocation.watchPosition(
-          (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 25;
-
-            const remainingKm = calculateHaversineDistanceKm(lat, lng, site.location.latitude, site.location.longitude);
-
-            const livePayload: LiveTracking = {
-              engineerId: track.engineerId,
-              engineerName: track.engineerName,
-              latitude: lat,
-              longitude: lng,
-              speedKmh: speed,
-              heading: pos.coords.heading || 0,
-              batteryPercentage: 92,
-              isOnline: true,
-              travelledDistanceKm: 5.2,
-              remainingDistanceKm: Number(remainingKm.toFixed(2)),
-              etaMinutes: Math.round((remainingKm / 40) * 60),
-              lastUpdated: Date.now(),
-            };
-
-            firebaseService.pushLiveTracking(track.engineerId, livePayload);
-          },
-          (err) => {
-            console.warn('HTML5 Geolocation Note:', err.message);
-          },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-      }
+      startGpsStream();
       onToggleSimulation();
     }
   };

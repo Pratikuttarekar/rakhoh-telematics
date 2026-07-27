@@ -99,6 +99,7 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({
       <div className="flex-1 flex flex-col min-h-0 bg-slate-950/80">
         {activeJobSite ? (
           <ActiveJobView
+            currentUser={currentUser}
             site={activeJobSite}
             track={track}
             isSimulating={isSimulating}

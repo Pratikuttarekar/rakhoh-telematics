@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Site, LiveTracking } from '../../types/fsm';
-import { Navigation, MapPin, Gauge, Battery, ArrowLeft, CheckCircle2, ShieldCheck, Play, Pause, Radio } from 'lucide-react';
+import { Site, LiveTracking, User } from '../../types/fsm';
+import { Navigation, MapPin, Gauge, Battery, ArrowLeft, CheckCircle2, ShieldCheck, Play, Pause, Radio, ShieldAlert } from 'lucide-react';
 import { isWithinGeofence, calculateHaversineDistanceKm } from '../../utils/geoUtils';
 import { firebaseService } from '../../services/firebaseService';
 
 interface ActiveJobViewProps {
+  currentUser: User;
   site: Site;
   track: LiveTracking;
   isSimulating: boolean;
@@ -15,6 +16,7 @@ interface ActiveJobViewProps {
 }
 
 export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
+  currentUser,
   site,
   track,
   isSimulating,
@@ -23,10 +25,12 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
   onArrived,
   onOpenSignoff,
 }) => {
-  const [isLiveGpsTracking, setIsLiveGpsTracking] = useState(true);
+  const isAdmin = currentUser?.role === 'admin';
+  const [isLiveGpsTracking, setIsLiveGpsTracking] = useState(!isAdmin);
   const watchIdRef = useRef<number | null>(null);
 
   const startGpsStream = () => {
+    if (isAdmin) return;
     if ('geolocation' in navigator) {
       setIsLiveGpsTracking(true);
       if (watchIdRef.current !== null) {
@@ -67,17 +71,22 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
   };
 
   useEffect(() => {
-    // Automatically start high-accuracy GPS streaming when Active Job opens
-    startGpsStream();
+    // Only start high-accuracy GPS streaming if logged in as a Field Engineer
+    if (!isAdmin) {
+      startGpsStream();
+    } else {
+      setIsLiveGpsTracking(false);
+    }
 
     return () => {
       if (watchIdRef.current !== null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
     };
-  }, [site.siteId]);
+  }, [site.siteId, isAdmin]);
 
   const toggleLiveGps = () => {
+    if (isAdmin) return;
     if (isLiveGpsTracking) {
       if (watchIdRef.current !== null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchIdRef.current);
@@ -100,6 +109,13 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
 
   return (
     <div className="flex-1 flex flex-col p-4 space-y-4 overflow-y-auto">
+      {isAdmin && (
+        <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-200 text-xs font-semibold flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>Admin Preview Mode - GPS tracking can only be initiated by assigned Field Engineers on their mobile devices.</span>
+        </div>
+      )}
+
       {/* Header Back Bar */}
       <div className="flex items-center justify-between">
         <button
@@ -150,8 +166,13 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
 
           <button
             onClick={toggleLiveGps}
+            disabled={isAdmin}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
-              isLiveGpsTracking || isSimulating ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-cyan-500 text-slate-950 shadow-md'
+              isAdmin
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+                : isLiveGpsTracking || isSimulating
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'bg-cyan-500 text-slate-950 shadow-md'
             }`}
           >
             {isLiveGpsTracking || isSimulating ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -212,7 +233,12 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
         {site.status === 'working' ? (
           <button
             onClick={onOpenSignoff}
-            className="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-xl shadow-emerald-500/20 transition flex items-center justify-center gap-2"
+            disabled={isAdmin}
+            className={`w-full py-3 rounded-2xl font-extrabold text-sm shadow-xl transition flex items-center justify-center gap-2 ${
+              isAdmin
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
+            }`}
           >
             <CheckCircle2 className="w-5 h-5" /> Complete Job & Capture Signature
           </button>
@@ -223,7 +249,12 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
         ) : (
           <button
             onClick={onArrived}
-            className="w-full py-3 rounded-2xl bg-blue-500 hover:bg-blue-400 text-white font-extrabold text-sm shadow-xl shadow-blue-500/20 transition flex items-center justify-center gap-2"
+            disabled={isAdmin}
+            className={`w-full py-3 rounded-2xl font-extrabold text-sm shadow-xl transition flex items-center justify-center gap-2 ${
+              isAdmin
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+                : 'bg-blue-500 hover:bg-blue-400 text-white shadow-blue-500/20'
+            }`}
           >
             Manual Mark Arrived at Site
           </button>

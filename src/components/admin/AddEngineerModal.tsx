@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, UserRole } from '../../types/fsm';
 import { UserPlus, Mail, Lock, Phone, User as UserIcon, X, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { createSecondaryAuthUser } from '../../services/firebase';
+import { fsmStore } from '../../services/store';
 import { firebaseService } from '../../services/firebaseService';
 
 interface AddEngineerModalProps {
@@ -102,8 +103,17 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
         updatedAt: new Date().toISOString(),
       };
 
-      // Write user document to Cloud Firestore /users/{uid}
-      await firebaseService.pushUser(newUser);
+      // Write user document to Cloud Firestore /users/{uid} with graceful fallback
+      let savedToCloud = false;
+      try {
+        await firebaseService.pushUser(newUser);
+        savedToCloud = true;
+      } catch (pushErr: any) {
+        console.warn('Firestore push note (using localStorage fallback):', pushErr.message);
+      }
+
+      // Always save to localStorage and push to central store immediately
+      fsmStore.addLocalUser(newUser);
 
       // Trigger UI callback
       onEngineerAdded(newUser);
@@ -116,7 +126,11 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
         role: role.toUpperCase(),
       });
 
-      setSuccessMessage(`Engineer created successfully! Account for ${name} (${role.toUpperCase()}) saved to Firestore.`);
+      setSuccessMessage(
+        savedToCloud
+          ? `Engineer created successfully! Account for ${name} (${role.toUpperCase()}) saved to Cloud Firestore.`
+          : `Engineer created successfully! Account for ${name} (${role.toUpperCase()}) active in local registry.`
+      );
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to create user account.');
     } finally {

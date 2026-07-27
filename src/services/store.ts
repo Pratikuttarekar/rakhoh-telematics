@@ -3,11 +3,43 @@ import { INITIAL_USERS, INITIAL_SITES, INITIAL_LIVE_TRACKING, INITIAL_ARRIVAL_AL
 import { calculateHaversineDistanceKm, calculateETA, calculateBearing, isWithinGeofence, interpolatePosition } from '../utils/geoUtils';
 import { firebaseService } from './firebaseService';
 
+export function getStoredLocalUsers(): User[] {
+  try {
+    const raw = localStorage.getItem('registered_engineers');
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+export function saveStoredLocalUser(user: User) {
+  try {
+    const stored = getStoredLocalUsers();
+    const idx = stored.findIndex((u) => u.uid === user.uid || (u.email && u.email.toLowerCase() === user.email.toLowerCase()));
+    if (idx !== -1) {
+      stored[idx] = user;
+    } else {
+      stored.unshift(user);
+    }
+    localStorage.setItem('registered_engineers', JSON.stringify(stored));
+  } catch (err) {
+    console.warn('LocalStorage save error:', err);
+  }
+}
+
+export function removeStoredLocalUser(uid: string) {
+  try {
+    const stored = getStoredLocalUsers().filter((u) => u.uid !== uid);
+    localStorage.setItem('registered_engineers', JSON.stringify(stored));
+  } catch (err) {
+    console.warn('LocalStorage remove error:', err);
+  }
+}
+
 type Listener = () => void;
 
 class FSMStore {
-  // Always seeded with the 7 demo engineers across India + merged with live Firestore
-  private users: User[] = [...INITIAL_USERS];
+  private users: User[] = [...getStoredLocalUsers(), ...INITIAL_USERS];
   private sites: Site[] = [...INITIAL_SITES];
   private liveTracking: Record<string, LiveTracking> = { ...INITIAL_LIVE_TRACKING };
   private arrivalAlerts: ArrivalAlert[] = [...INITIAL_ARRIVAL_ALERTS];
@@ -33,7 +65,20 @@ class FSMStore {
     if (firebaseService.isEnabled()) {
       firebaseService.subscribeToLiveUpdates({
         onUsersUpdate: (liveUsers) => {
-          this.users = liveUsers;
+          const localUsers = getStoredLocalUsers();
+          const mergedMap = new Map<string, User>();
+
+          // 1. Add Firestore live users
+          liveUsers.forEach((u) => mergedMap.set(u.uid, u));
+
+          // 2. Merge local users if not already in Firestore
+          localUsers.forEach((u) => {
+            if (!mergedMap.has(u.uid)) {
+              mergedMap.set(u.uid, u);
+            }
+          });
+
+          this.users = Array.from(mergedMap.values());
           if (!this.selectedEngineerId && this.users.length > 0) {
             const firstEng = this.users.find((u) => u.role === 'engineer' || !u.role);
             if (firstEng) {
@@ -84,6 +129,23 @@ class FSMStore {
   public getFilterStatus() { return this.filterStatus; }
   public getSearchQuery() { return this.searchQuery; }
   public getIsSimulatingMotion() { return this.isSimulatingMotion; }
+
+  public addLocalUser(user: User) {
+    saveStoredLocalUser(user);
+    const idx = this.users.findIndex((u) => u.uid === user.uid || (u.email && u.email.toLowerCase() === user.email.toLowerCase()));
+    if (idx !== -1) {
+      this.users[idx] = { ...this.users[idx], ...user };
+    } else {
+      this.users = [user, ...this.users];
+    }
+    this.notify();
+  }
+
+  public removeLocalUser(uid: string) {
+    removeStoredLocalUser(uid);
+    this.users = this.users.filter((u) => u.uid !== uid);
+    this.notify();
+  }
 
   // Setters
   public setViewMode(mode: ViewMode) {

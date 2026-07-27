@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, UserRole } from '../../types/fsm';
 import { Users, Search, Edit3, Trash2, UserPlus, X, ShieldCheck, User as UserIcon, Mail, Phone, Check, Lock, AlertTriangle } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
+import { fsmStore } from '../../services/store';
 
 interface UserManagementModalProps {
   users: User[];
@@ -81,6 +82,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   };
 
   const handleDelete = async (uid: string) => {
+    fsmStore.removeLocalUser(uid);
     await firebaseService.deleteUser(uid);
     setDeleteConfirmUid(null);
   };

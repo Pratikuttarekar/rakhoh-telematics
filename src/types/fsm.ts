@@ -79,6 +79,7 @@ export interface LiveTracking {
   latitude: number;
   longitude: number;
   speedKmh: number;
+  speed?: number;
   heading: number;
   batteryPercentage: number;
   isOnline: boolean;
@@ -86,6 +87,7 @@ export interface LiveTracking {
   remainingDistanceKm: number;
   etaMinutes: number;
   lastUpdated: number;
+  timestamp?: number;
   routePolyline?: [number, number][];
   currentWaypointIndex?: number;
 }

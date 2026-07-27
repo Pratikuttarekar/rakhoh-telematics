@@ -40,24 +40,33 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
   unreadAlertCount,
   onOpenAlerts,
 }) => {
+  const isUserRecentlyActive = (u: User) => {
+    const track = liveTracking[u.uid];
+    if (!track || !track.latitude || track.latitude === 0) return false;
+    const lastPing = track.timestamp || track.lastUpdated || 0;
+    return Date.now() - lastPing < 60000;
+  };
+
   // Compute real counts
   const totalEngineers = users.length;
-  const onlineCount = users.filter((u) => u.status === 'online').length;
-  const offlineCount = users.filter((u) => u.status === 'offline').length;
+  const onlineCount = users.filter(isUserRecentlyActive).length;
+  const offlineCount = Math.max(0, totalEngineers - onlineCount);
   const workingCount = sites.filter((s) => s.status === 'working').length;
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.engineerId.includes(searchQuery);
+      (user.engineerId && user.engineerId.includes(searchQuery));
 
     if (!matchesSearch) return false;
 
+    const isActive = isUserRecentlyActive(user);
+
     if (filterStatus === 'all') return true;
-    if (filterStatus === 'offline') return user.status === 'offline';
-    if (filterStatus === 'online') return user.status === 'online';
+    if (filterStatus === 'offline') return !isActive;
+    if (filterStatus === 'online') return isActive;
     if (filterStatus === 'working') {
-      const site = sites.find((s) => s.siteId === user.currentSiteId);
+      const site = sites.find((s) => s.assignedEngineerId === user.uid || (user.engineerId && s.assignedEngineerId === user.engineerId) || s.siteId === user.currentSiteId);
       return site?.status === 'working';
     }
     return true;
@@ -190,15 +199,17 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
           const assignedSite = sites.find((s) => s.siteId === user.currentSiteId);
           const color = getEngineerColor(user.uid);
 
+          const isOnline = isUserRecentlyActive(user);
+
           let statusBadgeColor = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
           let statusText = 'Online';
 
-          if (user.status === 'offline') {
+          if (!isOnline) {
             statusBadgeColor = 'bg-rose-500/20 text-rose-400 border-rose-500/30';
             statusText = 'Offline';
-          } else if (track && track.speedKmh > 5) {
+          } else if (track && (track.speedKmh || track.speed || 0) > 5) {
             statusBadgeColor = 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-            statusText = `Moving ${track.speedKmh}km/h`;
+            statusText = `Moving ${track.speedKmh || track.speed || 0}km/h`;
           } else if (assignedSite && assignedSite.status === 'working') {
             statusBadgeColor = 'bg-blue-500/20 text-blue-400 border-blue-500/30';
             statusText = 'Working on Site';

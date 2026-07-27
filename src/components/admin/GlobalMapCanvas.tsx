@@ -425,7 +425,9 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
           const isSelected = selectedEngineerId === user.uid;
           const assignedSite = sites.find((s) => (s.assignedEngineerId === user.uid || (user.engineerId && s.assignedEngineerId === user.engineerId) || s.siteId === user.currentSiteId) && s.status !== 'completed');
 
-          if (!track || !track.latitude || !track.longitude || track.latitude === 0 || !assignedSite) return null;
+          const isRecentlyActive = track && track.latitude && track.longitude && track.latitude !== 0 && (Date.now() - (track.timestamp || track.lastUpdated || 0) < 60000);
+
+          if (!isRecentlyActive || !assignedSite) return null;
 
           const route = osrmRoutes[user.uid] || [
             [track.latitude, track.longitude],
@@ -489,7 +491,8 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
         {/* 3. LIVE ENGINEER MARKERS WITH HIGH VISIBILITY NAME TAGS */}
         {users.map((user) => {
           const track = liveTracking[user.uid];
-          if (!track || !track.latitude || !track.longitude || track.latitude === 0) return null;
+          const isRecentlyActive = track && track.latitude && track.longitude && track.latitude !== 0 && (Date.now() - (track.timestamp || track.lastUpdated || 0) < 60000);
+          if (!isRecentlyActive) return null;
 
           const color = getEngineerColor(user.uid);
           const isSelected = selectedEngineerId === user.uid;

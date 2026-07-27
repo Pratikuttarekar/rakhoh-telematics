@@ -39,7 +39,7 @@ export function removeStoredLocalUser(uid: string) {
 type Listener = () => void;
 
 class FSMStore {
-  private users: User[] = [...getStoredLocalUsers(), ...INITIAL_USERS];
+  private users: User[] = [...getStoredLocalUsers()];
   private sites: Site[] = [...INITIAL_SITES];
   private liveTracking: Record<string, LiveTracking> = { ...INITIAL_LIVE_TRACKING };
   private arrivalAlerts: ArrivalAlert[] = [...INITIAL_ARRIVAL_ALERTS];

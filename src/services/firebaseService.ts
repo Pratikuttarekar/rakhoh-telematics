@@ -158,7 +158,7 @@ export class FirebaseService {
     }
   }
 
-  // Delete User document from Firestore /users/{uid} and RTDB /status/{uid}
+  // Delete User document from Firestore /users/{uid} and RTDB /status/{uid}, /users/{uid}, /live_locations/{uid}, /live_tracking/{uid}
   public async deleteUser(uid: string) {
     if (!this.isEnabled() || !db) return;
     try {
@@ -166,10 +166,10 @@ export class FirebaseService {
       await deleteDoc(userDocRef);
 
       if (rtdb) {
-        const rtdbUserRef = ref(rtdb, `users/${uid}`);
-        const rtdbStatusRef = ref(rtdb, `status/${uid}`);
-        await set(rtdbUserRef, null);
-        await set(rtdbStatusRef, null);
+        await set(ref(rtdb, `users/${uid}`), null);
+        await set(ref(rtdb, `status/${uid}`), null);
+        await set(ref(rtdb, `live_locations/${uid}`), null);
+        await set(ref(rtdb, `live_tracking/${uid}`), null);
       }
     } catch (err: any) {
       console.warn('User Delete Error:', err.message);

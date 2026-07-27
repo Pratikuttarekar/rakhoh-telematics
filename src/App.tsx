@@ -133,7 +133,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
         {viewMode === 'admin' && (
           <div className="w-full h-full flex flex-col lg:flex-row gap-4 min-h-screen lg:min-h-0">
             <SidebarFilter
-              users={users.length > 0 ? users : [fallbackUser]}
+              users={users}
               sites={sites}
               liveTracking={liveTracking}
               selectedEngineerId={selectedEngineerId}
@@ -153,7 +153,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
 
             <div className="flex-1 h-[450px] lg:h-full relative min-h-[400px]">
               <GlobalMapCanvas
-                users={users.length > 0 ? users : [fallbackUser]}
+                users={users}
                 sites={sites}
                 liveTracking={liveTracking}
                 selectedEngineerId={selectedEngineerId}
@@ -161,16 +161,18 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
                 onSelectSite={(id) => fsmStore.setSelectedSiteId(id)}
               />
 
-              <TelematicsOverlay
-                user={selectedUser}
-                track={selectedTrack}
-                assignedSite={assignedSite || null}
-                isSimulating={isSimulating}
-                onToggleSimulation={() => fsmStore.toggleMotionSimulation()}
-                onResetSimulation={() => fsmStore.resetSimulation()}
-                onOpenManageDispatches={(engUser) => setManagingEngineerUser(engUser)}
-                onClose={() => fsmStore.setSelectedEngineerId(null)}
-              />
+              {selectedUser && (
+                <TelematicsOverlay
+                  user={selectedUser}
+                  track={selectedTrack}
+                  assignedSite={assignedSite || null}
+                  isSimulating={isSimulating}
+                  onToggleSimulation={() => fsmStore.toggleMotionSimulation()}
+                  onResetSimulation={() => fsmStore.resetSimulation()}
+                  onOpenManageDispatches={(engUser) => setManagingEngineerUser(engUser)}
+                  onClose={() => fsmStore.setSelectedEngineerId(null)}
+                />
+              )}
             </div>
           </div>
         )}
@@ -195,7 +197,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
           <div className="w-full h-full flex flex-col lg:flex-row gap-4">
             <div className="w-full lg:w-2/3 h-full flex flex-col lg:flex-row gap-3">
               <SidebarFilter
-                users={users.length > 0 ? users : [fallbackUser]}
+                users={users}
                 sites={sites}
                 liveTracking={liveTracking}
                 selectedEngineerId={selectedEngineerId}
@@ -215,7 +217,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
 
               <div className="flex-1 h-[400px] lg:h-full relative">
                 <GlobalMapCanvas
-                  users={users.length > 0 ? users : [fallbackUser]}
+                  users={users}
                   sites={sites}
                   liveTracking={liveTracking}
                   selectedEngineerId={selectedEngineerId}
@@ -223,16 +225,18 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
                   onSelectSite={(id) => fsmStore.setSelectedSiteId(id)}
                 />
 
-                <TelematicsOverlay
-                  user={selectedUser}
-                  track={selectedTrack}
-                  assignedSite={assignedSite || null}
-                  isSimulating={isSimulating}
-                  onToggleSimulation={() => fsmStore.toggleMotionSimulation()}
-                  onResetSimulation={() => fsmStore.resetSimulation()}
-                  onOpenManageDispatches={(engUser) => setManagingEngineerUser(engUser)}
-                  onClose={() => fsmStore.setSelectedEngineerId(null)}
-                />
+                {selectedUser && (
+                  <TelematicsOverlay
+                    user={selectedUser}
+                    track={selectedTrack}
+                    assignedSite={assignedSite || null}
+                    isSimulating={isSimulating}
+                    onToggleSimulation={() => fsmStore.toggleMotionSimulation()}
+                    onResetSimulation={() => fsmStore.resetSimulation()}
+                    onOpenManageDispatches={(engUser) => setManagingEngineerUser(engUser)}
+                    onClose={() => fsmStore.setSelectedEngineerId(null)}
+                  />
+                )}
               </div>
             </div>
 

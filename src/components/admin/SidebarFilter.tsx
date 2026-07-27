@@ -177,7 +177,14 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
 
       {/* Engineer List Feed */}
       <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[200px]">
-        {filteredUsers.map((user) => {
+        {filteredUsers.length === 0 ? (
+          <div className="p-6 text-center glass-card rounded-2xl border border-slate-800 space-y-2 my-4">
+            <Users className="w-8 h-8 text-cyan-400/40 mx-auto" />
+            <p className="font-bold text-xs text-slate-200">No field engineers found in Firestore `/users`.</p>
+            <p className="text-[10px] text-slate-400">Click "+ Account" above to register active engineers.</p>
+          </div>
+        ) : (
+          filteredUsers.map((user) => {
           const track = liveTracking[user.uid];
           const isSelected = selectedEngineerId === user.uid;
           const assignedSite = sites.find((s) => s.siteId === user.currentSiteId);
@@ -260,7 +267,8 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
               </div>
             </div>
           );
-        })}
+        })
+        )}
       </div>
     </aside>
   );

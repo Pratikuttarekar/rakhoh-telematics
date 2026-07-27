@@ -1,6 +1,6 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getDatabase, ref, set } from 'firebase/database';
+import { getDatabase } from 'firebase/database';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -35,20 +35,22 @@ export async function createSecondaryAuthUser(email: string, pass: string): Prom
   const cleanEmail = email.trim().toLowerCase();
   const cleanPass = pass.trim();
 
+  const secondaryAppName = `Secondary_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+  const secondaryAuth = getAuth(secondaryApp);
+
   try {
-    const secondaryApp =
-      getApps().find((a) => a.name === 'SecondaryApp') ||
-      initializeApp(firebaseConfig, 'SecondaryApp');
-
-    const secondaryAuth = getAuth(secondaryApp);
     const userCred = await createUserWithEmailAndPassword(secondaryAuth, cleanEmail, cleanPass);
-    const uid = userCred.user.uid;
-
-    // Immediately sign out secondary auth so current admin session stays intact
-    await signOut(secondaryAuth);
-    return uid;
+    return userCred.user.uid;
   } catch (err: any) {
     console.warn('Secondary Auth User Creation Error:', err.message);
     throw err;
+  } finally {
+    try {
+      await signOut(secondaryAuth);
+      await deleteApp(secondaryApp);
+    } catch (cleanupErr) {
+      // Ignore cleanup error
+    }
   }
 }

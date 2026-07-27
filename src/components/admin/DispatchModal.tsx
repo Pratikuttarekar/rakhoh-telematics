@@ -22,7 +22,7 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
   const [clientPhone, setClientPhone] = useState('');
   const [address, setAddress] = useState('');
   const [assignedEngineerId, setAssignedEngineerId] = useState(
-    activeEngineers[0]?.uid || 'ENG_178'
+    activeEngineers[0]?.uid || ''
   );
   const [scheduledDate, setScheduledDate] = useState(new Date().toISOString().slice(0, 10));
   const [category, setCategory] = useState<'today' | 'tomorrow' | 'upcoming'>('today');
@@ -35,8 +35,13 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const assignedEng = users.find((u) => u.uid === assignedEngineerId) || activeEngineers[0];
-    const engId = assignedEng ? assignedEng.uid : assignedEngineerId;
-    const engName = assignedEng ? assignedEng.name : 'Prathamesh Patil';
+    if (!assignedEng) {
+      alert('Please select a registered field engineer to assign this job.');
+      return;
+    }
+
+    const engId = assignedEng.uid;
+    const engName = assignedEng.name;
 
     const dispatchPayload: Omit<Site, 'siteId' | 'createdAt'> = {
       clientName,
@@ -136,7 +141,7 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
                   className="w-full pl-9 pr-8 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 focus:border-cyan-500 focus:outline-none appearance-none font-medium cursor-pointer"
                 >
                   {activeEngineers.length === 0 ? (
-                    <option value="ENG_178">Prathamesh Patil (ID: #178)</option>
+                    <option value="">No field engineers registered in Firestore</option>
                   ) : (
                     activeEngineers.map((u) => (
                       <option key={u.uid} value={u.uid}>

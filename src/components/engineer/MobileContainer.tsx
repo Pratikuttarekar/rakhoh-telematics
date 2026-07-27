@@ -6,7 +6,7 @@ import { CompletionSignoffModal } from './CompletionSignoffModal';
 import { Wifi, Signal, Battery, Smartphone } from 'lucide-react';
 
 interface MobileContainerProps {
-  currentUser: User;
+  currentUser: User | null;
   sites: Site[];
   liveTracking: Record<string, LiveTracking>;
   isSimulating: boolean;
@@ -27,6 +27,18 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({
   const [activeJobSite, setActiveJobSite] = useState<Site | null>(null);
   const [isSignoffOpen, setIsSignoffOpen] = useState(false);
 
+  if (!currentUser) {
+    return (
+      <div className="w-full max-w-[390px] h-[780px] mx-auto bg-slate-950 rounded-[48px] p-4 shadow-2xl border-4 border-slate-800 flex flex-col justify-center items-center text-center p-6 space-y-3">
+        <Smartphone className="w-12 h-12 text-cyan-400/40 animate-pulse" />
+        <h4 className="font-extrabold text-base text-slate-100">No Engineer Logged In</h4>
+        <p className="text-xs text-slate-400">
+          Please log in as a field engineer or register a new engineer account using the + Account button.
+        </p>
+      </div>
+    );
+  }
+
   const track = liveTracking[currentUser.uid] || {
     engineerId: currentUser.uid,
     engineerName: currentUser.name,
@@ -34,7 +46,7 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({
     longitude: 73.7997,
     speedKmh: 0,
     heading: 0,
-    batteryPercentage: currentUser.deviceInfo.batteryLevel,
+    batteryPercentage: currentUser.deviceInfo?.batteryLevel || 90,
     isOnline: true,
     travelledDistanceKm: 14.8,
     remainingDistanceKm: 0.25,

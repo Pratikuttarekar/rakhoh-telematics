@@ -82,33 +82,14 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
     navigate('/login');
   };
 
-  const fallbackUser: User = {
-    uid: 'ENG_178',
-    engineerId: '178',
-    name: 'Prathamesh Patil',
-    email: authEmail || 'prathamesh@rakhoh.com',
-    phone: '+919876543210',
-    role: 'engineer',
-    status: 'online',
-    currentSiteId: 'SITE_1001',
-    deviceInfo: {
-      batteryLevel: 85,
-      isCharging: false,
-      networkStatus: '4G',
-      appVersion: '1.0.4',
-    },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
   // Selected engineer for Admin map inspector
-  const selectedUser = users.find((u) => u.uid === selectedEngineerId) || users[0] || fallbackUser;
+  const selectedUser = users.find((u) => u.uid === selectedEngineerId) || users[0] || null;
   const selectedTrack = selectedUser ? liveTracking[selectedUser.uid] : null;
-  const assignedSite = sites.find((s) => s.siteId === (selectedUser?.currentSiteId || 'SITE_1001'));
+  const assignedSite = selectedUser ? sites.find((s) => s.assignedEngineerId === selectedUser.uid || s.siteId === selectedUser.currentSiteId) : null;
   const unreadAlertCount = arrivalAlerts.filter((a) => !a.isReadByAdmin).length;
 
   // Dynamically resolve currently authenticated engineer user for Mobile Duty View
-  const currentAuthEngineer = currentUserDoc || users.find((u) => u.email.toLowerCase().trim() === (authEmail || '').toLowerCase().trim()) || selectedUser;
+  const currentAuthEngineer = currentUserDoc || users.find((u) => u.email.toLowerCase().trim() === (authEmail || '').toLowerCase().trim()) || users[0] || null;
 
   return (
     <div className="min-h-screen w-screen bg-slate-950 text-slate-100 flex flex-col overflow-x-hidden">
@@ -257,7 +238,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
 
       {/* Modals */}
       <DispatchModal
-        users={users.length > 0 ? users : [fallbackUser]}
+        users={users}
         isOpen={isDispatchOpen}
         onClose={() => setIsDispatchOpen(false)}
         onSubmit={(newSite) => fsmStore.createSite(newSite)}

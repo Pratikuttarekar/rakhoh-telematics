@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Site, User } from '../../types/fsm';
-import { History, Calendar, Search, Filter, X, CheckCircle2, Clock, MapPin, Download } from 'lucide-react';
+import { History, Calendar, Search, Filter, X, CheckCircle2, Clock, MapPin, Download, Edit3 } from 'lucide-react';
 import { exportEngineerCompletedSitesToExcel } from '../../utils/exportUtils';
 
 interface HistoricalLogsModalProps {
@@ -8,6 +8,7 @@ interface HistoricalLogsModalProps {
   users: User[];
   isOpen: boolean;
   onClose: () => void;
+  onOpenEditDispatch?: (site: Site) => void;
 }
 
 export const HistoricalLogsModal: React.FC<HistoricalLogsModalProps> = ({
@@ -15,6 +16,7 @@ export const HistoricalLogsModal: React.FC<HistoricalLogsModalProps> = ({
   users,
   isOpen,
   onClose,
+  onOpenEditDispatch,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'working' | 'completed'>('all');
@@ -173,9 +175,23 @@ export const HistoricalLogsModal: React.FC<HistoricalLogsModalProps> = ({
                       </td>
 
                       <td className="p-3 text-right">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase border ${statusBadge}`}>
-                          {site.status}
-                        </span>
+                        <div className="flex items-center justify-end gap-2">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase border ${statusBadge}`}>
+                            {site.status}
+                          </span>
+                          {site.status !== 'completed' && onOpenEditDispatch && (
+                            <button
+                              onClick={() => {
+                                onClose();
+                                onOpenEditDispatch(site);
+                              }}
+                              className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 font-bold transition text-[10px] flex items-center gap-1"
+                              title="Edit or Reassign Job Dispatch"
+                            >
+                              <Edit3 className="w-3 h-3 text-cyan-400" /> Edit
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

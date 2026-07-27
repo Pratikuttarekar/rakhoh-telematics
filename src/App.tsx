@@ -275,6 +275,10 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
         users={users}
         isOpen={isHistoricalLogsOpen}
         onClose={() => setIsHistoricalLogsOpen(false)}
+        onOpenEditDispatch={(site) => {
+          const eng = users.find((u) => u.uid === site.assignedEngineerId) || users[0] || null;
+          setManagingEngineerUser(eng);
+        }}
       />
 
       <UserManagementModal

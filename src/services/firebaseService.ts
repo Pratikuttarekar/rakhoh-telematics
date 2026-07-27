@@ -1,5 +1,5 @@
 import { db, rtdb, isFirebaseConfigured } from './firebase';
-import { collection, onSnapshot, query, where, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, setDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import { ref, onValue, set } from 'firebase/database';
 import { User, Site, ArrivalAlert, LiveTracking, Report } from '../types/fsm';
 
@@ -287,6 +287,31 @@ export class FirebaseService {
       await deleteDoc(siteDocRef);
     } catch (err: any) {
       console.warn('Firestore Site Delete Error:', err.message);
+    }
+  }
+
+  // Purge all non-admin dummy users from Firestore /users and RTDB /users & /status
+  public async purgeNonAdminUsers() {
+    if (!this.isEnabled() || !db) return;
+    try {
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+
+      for (const docSnap of snapshot.docs) {
+        const userData = docSnap.data() as User;
+        if (userData.role !== 'admin' && userData.email?.toLowerCase().trim() !== 'admin@rakhoh.com') {
+          await deleteDoc(doc(db, 'users', docSnap.id));
+
+          if (rtdb) {
+            await set(ref(rtdb, `users/${docSnap.id}`), null);
+            await set(ref(rtdb, `status/${docSnap.id}`), null);
+            await set(ref(rtdb, `live_locations/${docSnap.id}`), null);
+            await set(ref(rtdb, `live_tracking/${docSnap.id}`), null);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('Purge Users Error:', err.message);
     }
   }
 }

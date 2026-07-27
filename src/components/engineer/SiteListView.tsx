@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Site, User } from '../../types/fsm';
 import { MapPin, Calendar, Clock, Phone, ChevronRight, CheckCircle, PlayCircle, FileSpreadsheet, Download, AlertCircle, ShieldAlert } from 'lucide-react';
 import { exportEngineerCompletedSitesToExcel } from '../../utils/exportUtils';
+import { fsmStore } from '../../services/store';
 
 interface SiteListViewProps {
   currentUser: User;
@@ -179,7 +180,12 @@ export const SiteListView: React.FC<SiteListViewProps> = ({ currentUser, sites, 
                   </a>
 
                   <button
-                    onClick={() => onSelectJob(site)}
+                    onClick={() => {
+                      if (site.status === 'pending') {
+                        fsmStore.updateSiteStatus(site.siteId, 'working');
+                      }
+                      onSelectJob(site);
+                    }}
                     className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-1 transition"
                   >
                     {site.status === 'completed' ? (

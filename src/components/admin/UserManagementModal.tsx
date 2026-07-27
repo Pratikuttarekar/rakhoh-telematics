@@ -85,6 +85,12 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     setDeleteConfirmUid(null);
   };
 
+  const handlePurgeNonAdmin = async () => {
+    if (window.confirm('Purge all stale non-admin dummy users (including test engineers) from Firestore and RTDB?')) {
+      await firebaseService.purgeNonAdminUsers();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto glass-panel-glow rounded-3xl p-6 border border-cyan-500/30 text-slate-100 shadow-2xl flex flex-col">
@@ -101,6 +107,14 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handlePurgeNonAdmin}
+              className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white font-bold text-xs border border-rose-500/30 transition flex items-center gap-1"
+              title="Purge all non-admin test users"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Purge Stale Users
+            </button>
+
             <button
               onClick={() => {
                 onClose();

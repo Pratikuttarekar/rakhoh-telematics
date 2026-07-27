@@ -74,9 +74,8 @@ export class FirebaseService {
       (err) => console.warn('Firestore Reports Listener Warning:', err.message)
     );
 
-    // 5. Firebase Realtime Database (RTDB) /live_locations and /live_tracking Node Listener
+    // 5. Firebase Realtime Database (RTDB) /live_locations Node Listener
     const liveLocationsRef = ref(rtdb, 'live_locations');
-    const liveTrackingRef = ref(rtdb, 'live_tracking');
 
     const unsubRTDBLocations = onValue(
       liveLocationsRef,
@@ -84,20 +83,11 @@ export class FirebaseService {
         if (snapshot.exists()) {
           const locData = snapshot.val() as Record<string, LiveTracking>;
           callbacks.onLiveTrackingUpdate(locData);
+        } else {
+          callbacks.onLiveTrackingUpdate({});
         }
       },
       (err) => console.warn('RTDB live_locations Listener Warning:', err.message)
-    );
-
-    const unsubRTDBTracking = onValue(
-      liveTrackingRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const trackingData = snapshot.val() as Record<string, LiveTracking>;
-          callbacks.onLiveTrackingUpdate(trackingData);
-        }
-      },
-      (err) => console.warn('RTDB live_tracking Listener Warning:', err.message)
     );
 
     return () => {
@@ -106,11 +96,10 @@ export class FirebaseService {
       unsubAlerts();
       unsubReports();
       unsubRTDBLocations();
-      unsubRTDBTracking();
     };
   }
 
-  // Push User creation to Fire  // Push User creation to Firestore /users/{uid} and RTDB /users/{uid} & /status/{uid}
+  // Push User creation to Firestore /users/{uid} and RTDB /users/{uid} & /status/{uid}
   public async pushUser(user: User) {
     if (!this.isEnabled() || !db) return;
     const cleanEmail = user.email.trim().toLowerCase();
@@ -146,7 +135,7 @@ export class FirebaseService {
     }
   }
 
-  // Delete User document from Firestore /users/{uid} and RTDB /status/{uid}, /users/{uid}, /live_locations/{uid}, /live_tracking/{uid}
+  // Delete User document from Firestore /users/{uid} and RTDB /status/{uid}, /users/{uid}, /live_locations/{uid}
   public async deleteUser(uid: string) {
     if (!this.isEnabled() || !db) return;
     try {
@@ -157,23 +146,24 @@ export class FirebaseService {
         await set(ref(rtdb, `users/${uid}`), null);
         await set(ref(rtdb, `status/${uid}`), null);
         await set(ref(rtdb, `live_locations/${uid}`), null);
-        await set(ref(rtdb, `live_tracking/${uid}`), null);
       }
     } catch (err: any) {
       console.warn('User Delete Error:', err.message);
     }
   }
 
-  // Push Live Telematics Update to RTDB node /live_locations/{engineerId} and /live_tracking/{engineerId}
-  public async pushLiveTracking(engineerId: string, data: LiveTracking) {
+  // Push Live Telematics Update strictly to RTDB node /live_locations/{engineerId} (Field Engineers ONLY)
+  public async pushLiveTracking(engineerId: string, data: LiveTracking, userRole: string = 'engineer') {
     if (!this.isEnabled() || !rtdb) return;
+    if (userRole === 'admin') {
+      console.warn('FSM Telematics Warning: Admin browser location push rejected.');
+      return;
+    }
     try {
       const locRef = ref(rtdb, `live_locations/${engineerId}`);
-      const trackRef = ref(rtdb, `live_tracking/${engineerId}`);
       await set(locRef, data);
-      await set(trackRef, data);
     } catch (err: any) {
-      console.warn('RTDB Live Tracking Push Error:', err.message);
+      console.warn('RTDB Live Location Push Error:', err.message);
     }
   }
 

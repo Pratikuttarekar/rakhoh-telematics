@@ -60,7 +60,7 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
             lastUpdated: Date.now(),
           };
 
-          firebaseService.pushLiveTracking(track.engineerId, livePayload);
+          firebaseService.pushLiveTracking(track.engineerId, livePayload, currentUser.role);
         },
         (err) => {
           console.warn('HTML5 Geolocation Note:', err.message);

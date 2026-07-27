@@ -120,32 +120,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
           </button>
         )}
 
-        <button
-          onClick={onResetSimulation}
-          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
-          title="Reset Engineer GPS Position"
-        >
-          <RotateCcw className="w-4 h-4" />
-        </button>
 
-        <button
-          onClick={onToggleSimulation}
-          className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-lg ${
-            isSimulating
-              ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
-              : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
-          }`}
-        >
-          {isSimulating ? (
-            <>
-              <Pause className="w-4 h-4" /> <span className="hidden sm:inline">Pause Telemetry</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4" /> <span className="hidden sm:inline">Start Live Motion</span>
-            </>
-          )}
-        </button>
 
         {currentRole && (
           <button

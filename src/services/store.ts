@@ -27,7 +27,6 @@ class FSMStore {
   constructor() {
     // Connect Live Firestore & RTDB Sync
     this.initFirebaseSync();
-    this.startAutoTelematics();
   }
 
   private initFirebaseSync() {
@@ -132,8 +131,6 @@ class FSMStore {
     };
 
     this.liveTracking[firstEngineer.uid] = updatedTrack;
-    firebaseService.pushLiveTracking(firstEngineer.uid, updatedTrack);
-
     this.notify();
   }
 
@@ -239,57 +236,6 @@ class FSMStore {
 
     this.notify();
     return newReport;
-  }
-
-  // Background Telematics Ticker (Simulates live GPS motion updates to RTDB for active engineers)
-  private startAutoTelematics() {
-    if (this.simulationInterval) clearInterval(this.simulationInterval);
-
-    this.simulationInterval = window.setInterval(() => {
-      if (!this.isSimulatingMotion || this.users.length === 0) return;
-
-      this.users.forEach((user) => {
-        const track = this.liveTracking[user.uid];
-        if (!track || !track.routePolyline) return;
-
-        const waypoints = track.routePolyline;
-        let currentIndex = track.currentWaypointIndex || 0;
-
-        if (currentIndex >= waypoints.length - 1) return;
-
-        const nextIndex = currentIndex + 1;
-        const start = waypoints[currentIndex];
-        const target = waypoints[nextIndex];
-
-        const [newLat, newLng] = interpolatePosition(start[0], start[1], target[0], target[1], 0.35);
-        const assignedSite = this.sites.find((s) => s.siteId === user.currentSiteId);
-        const targetLat = assignedSite ? assignedSite.location.latitude : target[0];
-        const targetLng = assignedSite ? assignedSite.location.longitude : target[1];
-
-        const remainingKm = calculateHaversineDistanceKm(newLat, newLng, targetLat, targetLng);
-        const heading = calculateBearing(track.latitude, track.longitude, newLat, newLng);
-        const speedKmh = 36 + Math.floor(Math.random() * 10);
-        const eta = calculateETA(remainingKm, speedKmh);
-
-        const updatedTrack: LiveTracking = {
-          ...track,
-          latitude: newLat,
-          longitude: newLng,
-          speedKmh,
-          heading,
-          travelledDistanceKm: parseFloat((track.travelledDistanceKm + 0.15).toFixed(2)),
-          remainingDistanceKm: remainingKm,
-          etaMinutes: eta,
-          lastUpdated: Date.now(),
-          currentWaypointIndex: nextIndex,
-        };
-
-        this.liveTracking[user.uid] = updatedTrack;
-        firebaseService.pushLiveTracking(user.uid, updatedTrack);
-      });
-
-      this.notify();
-    }, 3000);
   }
 }
 

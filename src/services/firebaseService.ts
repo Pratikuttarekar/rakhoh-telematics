@@ -161,7 +161,22 @@ export class FirebaseService {
     }
     try {
       const locRef = ref(rtdb, `live_locations/${engineerId}`);
-      await set(locRef, data);
+      const payload = {
+        engineerId,
+        engineerName: data.engineerName || 'Field Engineer',
+        latitude: data.latitude,
+        longitude: data.longitude,
+        speed: data.speedKmh || 0,
+        speedKmh: data.speedKmh || 0,
+        heading: data.heading || 0,
+        timestamp: Date.now(),
+        lastUpdated: Date.now(),
+        status: 'online',
+        isOnline: true,
+        remainingDistanceKm: data.remainingDistanceKm || 0,
+        etaMinutes: data.etaMinutes || 0,
+      };
+      await set(locRef, payload);
     } catch (err: any) {
       console.warn('RTDB Live Location Push Error:', err.message);
     }

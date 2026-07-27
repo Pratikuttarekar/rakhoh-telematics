@@ -34,11 +34,14 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
     role: string;
   } | null>(null);
 
-  const nextEngineerId = (178 + existingUsersCount + 1).toString();
+  const defaultNextId = (178 + existingUsersCount + 1).toString();
+  const [customEngineerId, setCustomEngineerId] = useState(defaultNextId);
 
   // Clear all inputs on modal open / state reset
   useEffect(() => {
     if (isOpen) {
+      const generated = (178 + existingUsersCount + 1).toString();
+      setCustomEngineerId(generated);
       setName('');
       setEmail('');
       setPassword('');
@@ -48,7 +51,7 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
       setSuccessMessage(null);
       setCreatedUserCredentials(null);
     }
-  }, [isOpen]);
+  }, [isOpen, existingUsersCount]);
 
   if (!isOpen) return null;
 
@@ -78,9 +81,11 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
         console.warn('Firebase Auth user creation note:', authErr.message);
       }
 
+      const assignedId = customEngineerId.trim().replace(/^#/, '') || defaultNextId;
+
       const newUser: User = {
         uid,
-        engineerId: nextEngineerId,
+        engineerId: assignedId,
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim() || '+919876543210',
@@ -104,7 +109,7 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
       onEngineerAdded(newUser);
 
       setCreatedUserCredentials({
-        id: `#${nextEngineerId}`,
+        id: `#${assignedId}`,
         name: name.trim(),
         email: email.trim().toLowerCase(),
         pass: password.trim(),
@@ -132,7 +137,7 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-lg text-slate-100">Add New Account</h3>
                 <span className="text-[10px] font-mono font-bold bg-cyan-950 text-cyan-400 px-2 py-0.5 rounded-md border border-cyan-500/30">
-                  ID: #{nextEngineerId}
+                  ID: #{customEngineerId.replace(/^#/, '')}
                 </span>
               </div>
               <p className="text-xs text-slate-400">Create engineer/admin account & assign Firestore permissions</p>
@@ -201,14 +206,19 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit} autoComplete="off" className="mt-4 space-y-3.5 text-xs">
-          {/* Dynamic Auto-Generated ID Banner */}
+          {/* Fully Editable Employee / System ID */}
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">System Generated ID</label>
+            <label className="block text-slate-400 font-semibold mb-1 flex items-center justify-between">
+              <span>Employee / System ID</span>
+              <span className="text-[10px] text-cyan-400">Editable (e.g. EMP-101, ENG-05)</span>
+            </label>
             <input
               type="text"
-              disabled
-              value={`#${nextEngineerId}`}
-              className="w-full px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-cyan-400 font-mono font-bold"
+              required
+              value={customEngineerId}
+              onChange={(e) => setCustomEngineerId(e.target.value)}
+              placeholder="e.g. 179, EMP-101, ENG-05..."
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-cyan-400 font-mono font-bold focus:border-cyan-500 focus:outline-none"
             />
           </div>
 

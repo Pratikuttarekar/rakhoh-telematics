@@ -169,51 +169,22 @@ export const TelematicsOverlay: React.FC<TelematicsOverlayProps> = ({
             )}
           </div>
 
-          {/* Simulation Motion & Manage Dispatches Actions Bar */}
+          {/* Read-Only Telematics & Manage Dispatches Actions Bar */}
           <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between">
-            {onOpenManageDispatches ? (
+            <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              Live Sensor Telematics
+            </div>
+
+            {onOpenManageDispatches && (
               <button
                 onClick={() => onOpenManageDispatches(user)}
-                className="px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 text-[10px] font-bold transition flex items-center gap-1"
+                className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition flex items-center gap-1 shadow-md"
                 title="Manage active job dispatches"
               >
-                <Briefcase className="w-3 h-3" /> Dispatches
+                <Briefcase className="w-3.5 h-3.5" /> Manage Dispatches
               </button>
-            ) : (
-              <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                RTDB Live
-              </div>
             )}
-
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={onResetSimulation}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
-                title="Reset Position"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                onClick={onToggleSimulation}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-md ${
-                  isSimulating
-                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
-                    : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20'
-                }`}
-              >
-                {isSimulating ? (
-                  <>
-                    <Pause className="w-3 h-3" /> Pause
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3 h-3" /> Motion
-                  </>
-                )}
-              </button>
-            </div>
           </div>
         </div>
       )}

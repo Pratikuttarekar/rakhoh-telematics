@@ -59,18 +59,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <LayoutDashboard className="w-4 h-4" /> <span className="hidden sm:inline">Admin Global Map</span><span className="sm:hidden">Admin</span>
-        </button>
-
-        <button
-          onClick={() => onChangeViewMode('split')}
-          className={`px-3 sm:px-4 py-2 rounded-xl transition flex items-center gap-1.5 ${
-            viewMode === 'split'
-              ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-lg font-extrabold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Columns className="w-4 h-4" /> <span className="hidden sm:inline">Dual Live View</span><span className="sm:hidden">Split</span>
+          <LayoutDashboard className="w-4 h-4" /> <span className="hidden sm:inline">Admin Global Map</span><span className="sm:hidden">Admin Map</span>
         </button>
 
         {currentRole !== 'admin' && (

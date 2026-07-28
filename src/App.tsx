@@ -172,68 +172,6 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
             />
           </div>
         )}
-
-        {/* Dual Split View */}
-        {viewMode === 'split' && (
-          <div className="w-full h-full flex flex-col lg:flex-row gap-4">
-            <div className="w-full lg:w-2/3 h-full flex flex-col lg:flex-row gap-3">
-              <SidebarFilter
-                users={users}
-                sites={sites}
-                liveTracking={liveTracking}
-                selectedEngineerId={selectedEngineerId}
-                filterStatus={filterStatus}
-                searchQuery={searchQuery}
-                onSelectEngineer={(id) => fsmStore.setSelectedEngineerId(id)}
-                onFilterChange={(status) => fsmStore.setFilterStatus(status)}
-                onSearchChange={(q) => fsmStore.setSearchQuery(q)}
-                onOpenDispatch={() => setIsDispatchOpen(true)}
-                onOpenReport={() => setIsReportOpen(true)}
-                onOpenAddEngineer={() => setIsAddEngineerOpen(true)}
-                onOpenHistoricalLogs={() => setIsHistoricalLogsOpen(true)}
-                onOpenUserManagement={() => setIsUserManagementOpen(true)}
-                unreadAlertCount={unreadAlertCount}
-                onOpenAlerts={() => setIsAlertsOpen(true)}
-              />
-
-              <div className="flex-1 h-[400px] lg:h-full relative">
-                <GlobalMapCanvas
-                  users={users}
-                  sites={sites}
-                  liveTracking={liveTracking}
-                  selectedEngineerId={selectedEngineerId}
-                  onSelectEngineer={(id) => fsmStore.setSelectedEngineerId(id)}
-                  onSelectSite={(id) => fsmStore.setSelectedSiteId(id)}
-                />
-
-                {selectedUser && (
-                  <TelematicsOverlay
-                    user={selectedUser}
-                    track={selectedTrack}
-                    assignedSite={assignedSite || null}
-                    isSimulating={isSimulating}
-                    onToggleSimulation={() => fsmStore.toggleMotionSimulation()}
-                    onResetSimulation={() => fsmStore.resetSimulation()}
-                    onOpenManageDispatches={(engUser) => setManagingEngineerUser(engUser)}
-                    onClose={() => fsmStore.setSelectedEngineerId(null)}
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="w-full lg:w-1/3 h-[600px] lg:h-full glass-panel rounded-2xl p-4 border border-slate-800 flex items-center justify-center overflow-hidden">
-              <MobileContainer
-                currentUser={selectedUser}
-                sites={sites}
-                liveTracking={liveTracking}
-                isSimulating={isSimulating}
-                onToggleSimulation={() => fsmStore.toggleMotionSimulation()}
-                onArrivedAtSite={(siteId) => fsmStore.updateSiteStatus(siteId, 'working')}
-                onCompleteJob={(siteId, notes, sig) => fsmStore.updateSiteStatus(siteId, 'completed', notes, sig)}
-              />
-            </div>
-          </div>
-        )}
       </main>
 
       {/* Modals */}

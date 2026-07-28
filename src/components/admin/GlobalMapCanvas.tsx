@@ -420,6 +420,7 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
 
         {/* 2. REAL OSRM ROAD ROUTE POLYLINES WITH VIBRANT FULL-BRIGHTNESS & LIGHT DIMMING LOGIC */}
         {users.map((user) => {
+          if (user.role === 'admin' || user.email?.toLowerCase().trim() === 'admin@rakhoh.com') return null;
           const track = liveTracking[user.uid];
           const color = getEngineerColor(user.uid);
           const isSelected = selectedEngineerId === user.uid;
@@ -490,6 +491,7 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
 
         {/* 3. LIVE ENGINEER MARKERS WITH HIGH VISIBILITY NAME TAGS */}
         {users.map((user) => {
+          if (user.role === 'admin' || user.email?.toLowerCase().trim() === 'admin@rakhoh.com') return null;
           const track = liveTracking[user.uid];
           const isRecentlyActive = track && track.latitude && track.longitude && track.latitude !== 0 && (Date.now() - (track.timestamp || track.lastUpdated || 0) < 60000);
           if (!isRecentlyActive) return null;

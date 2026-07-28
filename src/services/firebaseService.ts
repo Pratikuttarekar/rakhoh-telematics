@@ -1,7 +1,7 @@
 import { db, rtdb, isFirebaseConfigured } from './firebase';
 import { collection, onSnapshot, query, where, doc, setDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import { ref, onValue, set } from 'firebase/database';
-import { User, Site, ArrivalAlert, LiveTracking, Report } from '../types/fsm';
+import { User, Site, ArrivalAlert, LiveTracking, Report, UserRole } from '../types/fsm';
 
 export class FirebaseService {
   private isConfigured: boolean = isFirebaseConfigured;
@@ -34,9 +34,14 @@ export class FirebaseService {
       (snapshot) => {
         const allUsers = snapshot.docs.map((docSnap) => {
           const data = docSnap.data() as User;
+          const rawRole = (data.role || '').toLowerCase().trim();
+          const isAdmin = rawRole === 'admin' || data.email?.toLowerCase().trim() === 'admin@rakhoh.com';
+          const role: UserRole = isAdmin ? 'admin' : 'engineer';
+
           return {
             ...data,
             uid: docSnap.id || data.uid,
+            role,
           };
         });
         callbacks.onUsersUpdate(allUsers);
@@ -74,11 +79,10 @@ export class FirebaseService {
       (err) => console.warn('Firestore Reports Listener Warning:', err.message)
     );
 
-    // 5. Firebase Realtime Database (RTDB) /live_locations Node Listener
-    const liveLocationsRef = ref(rtdb, 'live_locations');
-
+    // 5. RTDB /live_locations Listener (strictly for field engineers)
+    const locRef = ref(rtdb, 'live_locations');
     const unsubRTDBLocations = onValue(
-      liveLocationsRef,
+      locRef,
       (snapshot) => {
         if (snapshot.exists()) {
           const locData = snapshot.val() as Record<string, LiveTracking>;
@@ -103,9 +107,14 @@ export class FirebaseService {
   public async pushUser(user: User) {
     if (!this.isEnabled() || !db) return;
     const cleanEmail = user.email.trim().toLowerCase();
+    const rawRole = (user.role || '').toLowerCase().trim();
+    const isAdmin = rawRole === 'admin' || cleanEmail === 'admin@rakhoh.com';
+    const role: UserRole = isAdmin ? 'admin' : 'engineer';
+
     const cleanUser = {
       ...user,
       email: cleanEmail,
+      role,
       updatedAt: new Date().toISOString(),
     };
 

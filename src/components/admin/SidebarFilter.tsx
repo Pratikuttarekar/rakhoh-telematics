@@ -47,13 +47,18 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
     return Date.now() - lastPing < 60000;
   };
 
+  const fieldEngineers = users.filter((u) => {
+    const rawRole = (u.role || '').toLowerCase().trim();
+    return rawRole !== 'admin' && u.email?.toLowerCase().trim() !== 'admin@rakhoh.com';
+  });
+
   // Compute real counts
-  const totalEngineers = users.length;
-  const onlineCount = users.filter(isUserRecentlyActive).length;
+  const totalEngineers = fieldEngineers.length;
+  const onlineCount = fieldEngineers.filter(isUserRecentlyActive).length;
   const offlineCount = Math.max(0, totalEngineers - onlineCount);
   const workingCount = sites.filter((s) => s.status === 'working').length;
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = fieldEngineers.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (user.engineerId && user.engineerId.includes(searchQuery));

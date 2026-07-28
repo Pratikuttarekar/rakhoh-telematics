@@ -90,7 +90,7 @@ export const AddEngineerModal: React.FC<AddEngineerModalProps> = ({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim() || '+919876543210',
-        role,
+        role: (role || 'engineer').toLowerCase().trim() as UserRole,
         status: 'online',
         currentSiteId: null,
         deviceInfo: {

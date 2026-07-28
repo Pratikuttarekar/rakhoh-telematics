@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, LiveTracking, Site } from '../../types/fsm';
-import { Search, Battery, ShieldAlert, Navigation, Activity, UserPlus, Bell, History, Radio, Users } from 'lucide-react';
+import { Search, Battery, ShieldAlert, Navigation, Activity, UserPlus, Bell, History, Radio, Users, Target } from 'lucide-react';
 import { getEngineerColor } from './GlobalMapCanvas';
 
 interface SidebarFilterProps {
@@ -259,19 +259,21 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between mt-1 text-[11px]">
+                  <div className="flex items-center justify-between mt-1.5 text-[11px]">
                     <span className={`px-2 py-0.5 rounded-full border font-semibold ${statusBadgeColor}`}>
                       {statusText}
                     </span>
 
-                    {track && (
-                      <div className="flex items-center gap-2 text-slate-400">
-                        <span className="flex items-center gap-0.5 text-emerald-400">
-                          <Battery className="w-3 h-3" />
-                          {track.batteryPercentage}%
-                        </span>
-                      </div>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectEngineer(user.uid);
+                      }}
+                      className="px-2 py-0.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/30 text-[10px] font-bold transition flex items-center gap-1 shadow-sm"
+                      title={`Focus Map on ${user.name} Live GPS`}
+                    >
+                      <Target className="w-3 h-3 text-cyan-400" /> Focus Engineer
+                    </button>
                   </div>
 
                   {assignedSite && (

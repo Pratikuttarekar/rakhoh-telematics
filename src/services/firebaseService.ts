@@ -182,11 +182,12 @@ export class FirebaseService {
     }
   }
 
-  // Push Site Creation to Firestore /sites/{siteId}
+  // Push Site / Dispatch document to Firestore /sites/{siteId} and /dispatches/{siteId}
   public async pushSite(site: Site) {
     if (!this.isEnabled() || !db) return;
     try {
       const siteDocRef = doc(db, 'sites', site.siteId);
+      const dispatchDocRef = doc(db, 'dispatches', site.siteId);
       const payload = {
         ...site,
         assignedEngineerId: site.assignedEngineerId,
@@ -198,8 +199,20 @@ export class FirebaseService {
         updatedAt: new Date().toISOString(),
       };
       await setDoc(siteDocRef, payload, { merge: true });
+      await setDoc(dispatchDocRef, payload, { merge: true });
     } catch (err: any) {
       console.warn('Firestore Site Push Error:', err.message);
+    }
+  }
+
+  // Delete Site / Dispatch document from Firestore /sites/{siteId} and /dispatches/{siteId}
+  public async deleteSite(siteId: string) {
+    if (!this.isEnabled() || !db) return;
+    try {
+      await deleteDoc(doc(db, 'sites', siteId));
+      await deleteDoc(doc(db, 'dispatches', siteId));
+    } catch (err: any) {
+      console.warn('Firestore Site Delete Error:', err.message);
     }
   }
 
@@ -269,17 +282,6 @@ export class FirebaseService {
       await setDoc(dispatchDocRef, dispatchRecord);
     } catch (err: any) {
       console.warn('Firestore Dispatch Push Error:', err.message);
-    }
-  }
-
-  // Delete Site from Firestore /sites/{siteId}
-  public async deleteSite(siteId: string) {
-    if (!this.isEnabled() || !db) return;
-    try {
-      const siteDocRef = doc(db, 'sites', siteId);
-      await deleteDoc(siteDocRef);
-    } catch (err: any) {
-      console.warn('Firestore Site Delete Error:', err.message);
     }
   }
 

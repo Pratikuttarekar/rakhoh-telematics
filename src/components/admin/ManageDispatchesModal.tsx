@@ -29,6 +29,7 @@ export const ManageDispatchesModal: React.FC<ManageDispatchesModalProps> = ({
   const [editDate, setEditDate] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [editAssignedEngId, setEditAssignedEngId] = useState('');
+  const [editGeofenceRadius, setEditGeofenceRadius] = useState<number>(100);
   
   const [deleteConfirmSiteId, setDeleteConfirmSiteId] = useState<string | null>(null);
 
@@ -50,6 +51,7 @@ export const ManageDispatchesModal: React.FC<ManageDispatchesModalProps> = ({
     setEditAddress(site.location.address);
     setEditLatitude(site.location.latitude);
     setEditLongitude(site.location.longitude);
+    setEditGeofenceRadius(site.location.geofenceRadiusMeters || 100);
     setEditDate(site.scheduledDate);
     setEditNotes(site.notes || '');
     setEditAssignedEngId(site.assignedEngineerId);
@@ -68,7 +70,7 @@ export const ManageDispatchesModal: React.FC<ManageDispatchesModalProps> = ({
         address: editAddress,
         latitude: Number(editLatitude),
         longitude: Number(editLongitude),
-        geofenceRadiusMeters: 100,
+        geofenceRadiusMeters: Number(editGeofenceRadius) || 100,
       },
     });
 
@@ -179,7 +181,7 @@ export const ManageDispatchesModal: React.FC<ManageDispatchesModalProps> = ({
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
                         <label className="block text-slate-400 mb-1">Latitude</label>
                         <input
@@ -197,6 +199,15 @@ export const ManageDispatchesModal: React.FC<ManageDispatchesModalProps> = ({
                           step="0.0001"
                           value={editLongitude}
                           onChange={(e) => setEditLongitude(parseFloat(e.target.value))}
+                          className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-200 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 mb-1">Radius (Meters)</label>
+                        <input
+                          type="number"
+                          value={editGeofenceRadius}
+                          onChange={(e) => setEditGeofenceRadius(parseInt(e.target.value) || 100)}
                           className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-200 font-mono"
                         />
                       </div>

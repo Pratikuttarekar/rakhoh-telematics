@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Circle, Polyline, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, MarkerF, PolylineF, CircleF, InfoWindowF } from '@react-google-maps/api';
 import { LiveTracking, Site, User } from '../../types/fsm';
 import { Layers, Maximize2, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
 
@@ -43,153 +42,17 @@ export function getEngineerColor(engineerId: string) {
   return palette[idx];
 }
 
-// Tile provider options featuring Google Maps layers
-const TILE_PROVIDERS = {
-  googleStandard: {
-    name: 'Google Maps (Standard)',
-    url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-    maxZoom: 20,
-    attribution: '&copy; Google Maps',
-  },
-  googleSatellite: {
-    name: 'Google Maps (Satellite)',
-    url: 'https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-    maxZoom: 20,
-    attribution: '&copy; Google Maps',
-  },
-  googleTerrain: {
-    name: 'Google Maps (Terrain)',
-    url: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-    maxZoom: 20,
-    attribution: '&copy; Google Maps',
-  },
-  googleHybrid: {
-    name: 'Google Maps (Hybrid)',
-    url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-    maxZoom: 20,
-    attribution: '&copy; Google Maps',
-  },
-  cartoDark: {
-    name: 'CartoDB Dark Matter (Dark Mode)',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    subdomains: ['a', 'b', 'c'],
-    maxZoom: 19,
-    attribution: '&copy; CARTO',
-  },
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%',
+  minHeight: '450px',
+  borderRadius: '1rem',
 };
 
-// Map Controller for fitBounds and smooth flyTo zoom
-function MapViewController({
-  selectedRouteBounds,
-  allCoordinates,
-  resetTrigger,
-}: {
-  selectedRouteBounds: [number, number][] | null;
-  allCoordinates: [number, number][];
-  resetTrigger: number;
-}) {
-  const map = useMap();
-  const [hasFitInitialBounds, setHasFitInitialBounds] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [map]);
-
-  // Auto zoom out / fit bounds over all engineer markers on initial map load
-  useEffect(() => {
-    if (!hasFitInitialBounds && allCoordinates.length > 0) {
-      const bounds = L.latLngBounds(allCoordinates);
-      map.fitBounds(bounds, { padding: [60, 60], animate: true, duration: 1.0 });
-      setHasFitInitialBounds(true);
-    }
-  }, [allCoordinates, hasFitInitialBounds, map]);
-
-  useEffect(() => {
-    if (resetTrigger > 0 && allCoordinates.length > 0) {
-      const bounds = L.latLngBounds(allCoordinates);
-      map.fitBounds(bounds, { padding: [60, 60], animate: true, duration: 1.2 });
-    } else if (selectedRouteBounds && selectedRouteBounds.length > 0) {
-      const bounds = L.latLngBounds(selectedRouteBounds);
-      map.fitBounds(bounds, { padding: [65, 65], animate: true, duration: 1.0 });
-    }
-  }, [selectedRouteBounds, resetTrigger, map, allCoordinates]);
-
-  return null;
-}
-
-// Clean & High-Visibility Engineer DivIcon with Avatar Photo & Crisp Name Label
-function createEngineerMarkerIcon(
-  user: User,
-  track: LiveTracking,
-  colorHex: string,
-  isSelected: boolean,
-  hasSelected: boolean
-) {
-  const avatar = user.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100';
-  const pulseAnimation = track.speedKmh > 5 ? 'animate-pulse' : '';
-  
-  // Visibility logic: 1.0 for default or selected, 0.75 for non-selected
-  const opacityClass = hasSelected && !isSelected ? 'opacity-75 scale-95' : 'opacity-100';
-  const selectedRing = isSelected ? 'scale-125 z-50 ring-4 ring-white shadow-2xl drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]' : 'hover:scale-110';
-
-  const html = `
-    <div class="relative flex flex-col items-center justify-center transition-all duration-300 ${opacityClass} ${selectedRing}">
-      <!-- Clean Avatar Circle with Color Border -->
-      <div class="w-9 h-9 rounded-full p-0.5 shadow-xl flex items-center justify-center ${pulseAnimation}"
-           style="background-color: ${colorHex};">
-        <img src="${avatar}" class="w-8 h-8 rounded-full object-cover border border-slate-900" />
-      </div>
-
-      <!-- High Visibility Engineer Name Tag Label Below -->
-      <div class="bg-slate-900/95 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full border border-slate-700 mt-1 shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md">
-        <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${colorHex}"></span>
-        <span>${user.name}</span>
-      </div>
-    </div>
-  `;
-
-  return L.divIcon({
-    html,
-    className: 'custom-engineer-div-icon',
-    iconSize: [40, 56],
-    iconAnchor: [20, 20],
-  });
-}
-
-// Clean & High-Visibility DivIcon for Target Sites
-function createSiteMarkerIcon(site: Site, colorHex: string, isSelected: boolean, hasSelected: boolean) {
-  const opacityClass = hasSelected && !isSelected ? 'opacity-75 scale-95' : 'opacity-100';
-  const scale = isSelected ? 'scale-125 z-40' : 'hover:scale-110';
-
-  const html = `
-    <div class="relative flex flex-col items-center justify-center ${opacityClass} ${scale} transition-all duration-300">
-      <div class="w-8 h-8 rounded-xl flex items-center justify-center shadow-xl border-2 border-white text-white" 
-           style="background-color: ${colorHex}">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5">
-          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-          <circle cx="12" cy="10" r="3"/>
-        </svg>
-      </div>
-      <div class="bg-slate-900/95 text-white font-bold text-[9px] px-1.5 py-0.5 rounded border border-slate-700 mt-0.5 shadow-md whitespace-nowrap backdrop-blur-md">
-        ${site.clientName}
-      </div>
-    </div>
-  `;
-
-  return L.divIcon({
-    html,
-    className: 'custom-site-div-icon',
-    iconSize: [32, 44],
-    iconAnchor: [16, 44],
-  });
-}
+const defaultCenter = {
+  lat: 18.5204,
+  lng: 73.8567,
+};
 
 export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
   users,
@@ -199,19 +62,31 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
   onSelectEngineer,
   onSelectSite,
 }) => {
-  const [activeTileKey, setActiveTileKey] = useState<keyof typeof TILE_PROVIDERS>('googleStandard');
-  const [resetCounter, setResetCounter] = useState(0);
-  const [osrmRoutes, setOsrmRoutes] = useState<Record<string, [number, number][]>>({});
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [activeSitePopup, setActiveSitePopup] = useState<Site | null>(null);
   const [isLegendExpanded, setIsLegendExpanded] = useState(false);
+  const [osrmRoutes, setOsrmRoutes] = useState<Record<string, { lat: number; lng: number }[]>>({});
+  const [mapTypeId, setMapTypeId] = useState<'roadmap' | 'satellite' | 'hybrid' | 'terrain'>('roadmap');
 
-  const defaultCenter: [number, number] = [20.5937, 78.9629];
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: '', // Uses default Google Maps JS API tiles
+  });
 
-  // Fetch real road routes from public OSRM API dynamically on live GPS stream updates
+  const onLoad = useCallback((mapInstance: google.maps.Map) => {
+    setMap(mapInstance);
+  }, []);
+
+  const onUnmount = useCallback(() => {
+    setMap(null);
+  }, []);
+
+  // Fetch real driving routes via public OSRM API dynamically for polylines
   useEffect(() => {
     let isMounted = true;
 
     async function loadAllRoutes() {
-      const newRoutes: Record<string, [number, number][]> = {};
+      const newRoutes: Record<string, { lat: number; lng: number }[]> = {};
 
       for (const user of users) {
         const track = liveTracking[user.uid];
@@ -234,19 +109,19 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
 
             if (data.routes && data.routes[0]?.geometry?.coordinates) {
               const waypoints = data.routes[0].geometry.coordinates.map(
-                (coord: [number, number]) => [coord[1], coord[0]] as [number, number]
+                (coord: [number, number]) => ({ lat: coord[1], lng: coord[0] })
               );
               newRoutes[user.uid] = waypoints;
             } else {
-              newRoutes[user.uid] = track.routePolyline || [
-                [startLat, startLng],
-                [endLat, endLng],
+              newRoutes[user.uid] = [
+                { lat: startLat, lng: startLng },
+                { lat: endLat, lng: endLng },
               ];
             }
           } catch (err) {
-            newRoutes[user.uid] = track.routePolyline || [
-              [startLat, startLng],
-              [endLat, endLng],
+            newRoutes[user.uid] = [
+              { lat: startLat, lng: startLng },
+              { lat: endLat, lng: endLng },
             ];
           }
         }
@@ -264,68 +139,109 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
     };
   }, [users, sites, liveTracking]);
 
-  // Compute all coordinates for fitBounds
-  const allCoordinates = useMemo(() => {
-    const coords: [number, number][] = [];
-    users.forEach((u) => {
-      const track = liveTracking[u.uid];
-      if (track) coords.push([track.latitude, track.longitude]);
-    });
-    sites.forEach((s) => {
-      coords.push([s.location.latitude, s.location.longitude]);
-    });
-    return coords;
-  }, [users, sites, liveTracking]);
-
-  // Compute selected engineer route bounds for click-to-highlight focus
-  const selectedRouteBounds = useMemo(() => {
-    if (!selectedEngineerId) return null;
-    const route = osrmRoutes[selectedEngineerId];
-    if (route && route.length > 0) return route;
-
-    const user = users.find((u) => u.uid === selectedEngineerId);
-    const track = selectedEngineerId ? liveTracking[selectedEngineerId] : null;
-    const site = sites.find((s) => s.siteId === user?.currentSiteId);
-
-    if (track && site) {
-      return [
-        [track.latitude, track.longitude],
-        [site.location.latitude, site.location.longitude],
-      ] as [number, number][];
+  // Dynamic Center Calculation based on active dispatches or selected engineer
+  const computedCenter = useMemo(() => {
+    if (selectedEngineerId) {
+      const track = liveTracking[selectedEngineerId];
+      if (track && track.latitude && track.longitude) {
+        return { lat: track.latitude, lng: track.longitude };
+      }
+      const user = users.find((u) => u.uid === selectedEngineerId);
+      const site = sites.find((s) => s.siteId === user?.currentSiteId);
+      if (site) {
+        return { lat: site.location.latitude, lng: site.location.longitude };
+      }
     }
-    return null;
-  }, [selectedEngineerId, osrmRoutes, users, sites, liveTracking]);
+
+    // Default to active sites center or default India coordinates
+    const activeSites = sites.filter((s) => s.status !== 'completed');
+    if (activeSites.length > 0) {
+      const avgLat = activeSites.reduce((sum, s) => sum + s.location.latitude, 0) / activeSites.length;
+      const avgLng = activeSites.reduce((sum, s) => sum + s.location.longitude, 0) / activeSites.length;
+      return { lat: avgLat, lng: avgLng };
+    }
+
+    return defaultCenter;
+  }, [selectedEngineerId, liveTracking, users, sites]);
+
+  // Fit Bounds on Map Instance update or selection
+  useEffect(() => {
+    if (map && isLoaded) {
+      const bounds = new google.maps.LatLngBounds();
+      let hasPoints = false;
+
+      users.forEach((u) => {
+        const track = liveTracking[u.uid];
+        if (track && track.latitude && track.longitude) {
+          bounds.extend({ lat: track.latitude, lng: track.longitude });
+          hasPoints = true;
+        }
+      });
+
+      sites.forEach((s) => {
+        bounds.extend({ lat: s.location.latitude, lng: s.location.longitude });
+        hasPoints = true;
+      });
+
+      if (hasPoints) {
+        map.fitBounds(bounds, 80);
+      }
+    }
+  }, [map, isLoaded, users, sites, liveTracking]);
+
+  const handleResetView = () => {
+    onSelectEngineer('');
+    if (map && isLoaded) {
+      const bounds = new google.maps.LatLngBounds();
+      let hasPoints = false;
+      users.forEach((u) => {
+        const track = liveTracking[u.uid];
+        if (track && track.latitude && track.longitude) {
+          bounds.extend({ lat: track.latitude, lng: track.longitude });
+          hasPoints = true;
+        }
+      });
+      sites.forEach((s) => {
+        bounds.extend({ lat: s.location.latitude, lng: s.location.longitude });
+        hasPoints = true;
+      });
+
+      if (hasPoints) {
+        map.fitBounds(bounds, 80);
+      } else {
+        map.panTo(defaultCenter);
+        map.setZoom(6);
+      }
+    }
+  };
 
   const hasSelectedEngineer = Boolean(selectedEngineerId);
-  const currentTile = TILE_PROVIDERS[activeTileKey];
 
   return (
     <div className="relative w-full h-full min-h-[500px] rounded-2xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col">
       {/* Top Map Header Controls Overlay */}
       <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        {/* Tile Provider Select */}
+        {/* Map Type Switcher */}
         <div className="glass-panel px-3 py-2 rounded-xl border border-slate-800 flex items-center gap-2.5 text-xs shadow-xl pointer-events-auto">
           <div className="flex items-center gap-1.5 text-slate-300 font-bold">
             <Layers className="w-4 h-4 text-cyan-400" />
-            Map Style:
+            Google Map Style:
           </div>
           <select
-            value={activeTileKey}
-            onChange={(e) => setActiveTileKey(e.target.value as keyof typeof TILE_PROVIDERS)}
+            value={mapTypeId}
+            onChange={(e) => setMapTypeId(e.target.value as any)}
             className="bg-slate-900 text-cyan-300 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none"
           >
-            <option value="cartoDark">CartoDB Dark Matter (Recommended)</option>
-            <option value="osm">OpenStreetMap (Standard)</option>
-            <option value="satellite">Esri World Satellite</option>
+            <option value="roadmap">Google Maps (Standard)</option>
+            <option value="satellite">Google Maps (Satellite)</option>
+            <option value="hybrid">Google Maps (Hybrid)</option>
+            <option value="terrain">Google Maps (Terrain)</option>
           </select>
         </div>
 
         {/* Reset View Button */}
         <button
-          onClick={() => {
-            onSelectEngineer('');
-            setResetCounter((c) => c + 1);
-          }}
+          onClick={handleResetView}
           className="glass-panel hover:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-700 text-xs font-extrabold text-cyan-300 transition flex items-center gap-1.5 shadow-xl pointer-events-auto"
         >
           <Maximize2 className="w-3.5 h-3.5 text-cyan-400" /> Reset View (Fit All Engineers)
@@ -340,7 +256,7 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
         >
           <span className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
-            Live OSRM Radar ({users.length} Vectors)
+            Google Maps Radar ({users.length} Field Engineers)
           </span>
           {isLegendExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
         </button>
@@ -386,169 +302,190 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
         )}
       </div>
 
-      {/* Main Leaflet Map Canvas */}
-      <MapContainer
-        center={defaultCenter}
-        zoom={5}
-        className="w-full h-full flex-1 z-0 min-h-[450px]"
-        scrollWheelZoom={true}
-      >
-        <MapViewController
-          selectedRouteBounds={selectedRouteBounds}
-          allCoordinates={allCoordinates}
-          resetTrigger={resetCounter}
-        />
+      {/* Main Google Maps Component */}
+      {isLoaded ? (
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
+          center={computedCenter}
+          zoom={8}
+          mapTypeId={mapTypeId}
+          onLoad={onLoad}
+          onUnmount={onUnmount}
+          options={{
+            disableDefaultUI: false,
+            zoomControl: true,
+            streetViewControl: true,
+            mapTypeControl: true,
+            fullscreenControl: true,
+            styles: [
+              {
+                featureType: 'poi',
+                elementType: 'labels',
+                stylers: [{ visibility: 'off' }],
+              },
+            ],
+          }}
+        >
+          {/* 1. MARKER 1 (TARGET SITE LOCATION PINS) & GEOFENCE CIRCLES */}
+          {sites.map((site) => {
+            const color = getEngineerColor(site.assignedEngineerId);
+            const isSelected = site.assignedEngineerId === selectedEngineerId;
 
-        <TileLayer
-          key={activeTileKey}
-          attribution={currentTile.attribution}
-          url={currentTile.url}
-          subdomains={currentTile.subdomains || ['mt0', 'mt1', 'mt2', 'mt3']}
-          maxZoom={currentTile.maxZoom || 20}
-        />
-
-        {/* 1. ASSIGNED SITES & GEOFENCE CIRCLES */}
-        {sites.map((site) => {
-          const color = getEngineerColor(site.assignedEngineerId);
-          const isSelected = site.assignedEngineerId === selectedEngineerId;
-
-          return (
-            <React.Fragment key={site.siteId}>
-              <Circle
-                center={[site.location.latitude, site.location.longitude]}
-                radius={site.location.geofenceRadiusMeters || 100}
-                pathOptions={{
-                  color: color.hex,
-                  fillColor: color.hex,
-                  fillOpacity: isSelected ? 0.35 : 0.18,
-                  dashArray: '6, 6',
-                  weight: isSelected ? 3 : 2,
-                }}
-              />
-
-              <Marker
-                position={[site.location.latitude, site.location.longitude]}
-                icon={createSiteMarkerIcon(site, color.hex, isSelected, hasSelectedEngineer)}
-                eventHandlers={{
-                  click: () => {
-                    onSelectSite(site.siteId);
-                    if (site.assignedEngineerId) onSelectEngineer(site.assignedEngineerId);
-                  },
-                }}
-              >
-                <Popup className="custom-site-popup">
-                  <div className="p-1 space-y-1.5 text-xs font-sans">
-                    <h4 className="font-extrabold text-sm text-slate-900">{site.clientName}</h4>
-                    <p className="text-[11px] text-slate-600">📍 {site.location.address}</p>
-                    <p className="text-[10px] text-slate-500 font-mono">Geofence: {site.location.geofenceRadiusMeters || 100}m radius</p>
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${site.location.latitude},${site.location.longitude}&travelmode=driving`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-[11px] font-bold transition shadow-sm mt-1"
-                    >
-                      <span>🗺️ Launch Google Maps Navigation</span>
-                    </a>
-                  </div>
-                </Popup>
-              </Marker>
-            </React.Fragment>
-          );
-        })}
-
-        {/* 2. REAL OSRM ROAD ROUTE POLYLINES WITH VIBRANT FULL-BRIGHTNESS & LIGHT DIMMING LOGIC */}
-        {users.map((user) => {
-          if (user.role === 'admin' || user.email?.toLowerCase().trim() === 'admin@rakhoh.com') return null;
-          const track = liveTracking[user.uid];
-          const color = getEngineerColor(user.uid);
-          const isSelected = selectedEngineerId === user.uid;
-          const assignedSite = sites.find((s) => (s.assignedEngineerId === user.uid || (user.engineerId && s.assignedEngineerId === user.engineerId) || s.siteId === user.currentSiteId) && s.status !== 'completed');
-
-          const isRecentlyActive = track && track.latitude && track.longitude && track.latitude !== 0 && (Date.now() - (track.timestamp || track.lastUpdated || 0) < 60000);
-
-          if (!isRecentlyActive || !assignedSite) return null;
-
-          const route = osrmRoutes[user.uid] || [
-            [track.latitude, track.longitude],
-            [assignedSite.location.latitude, assignedSite.location.longitude],
-          ];
-
-          if (route.length < 2) return null;
-
-          // Default state: ALL routes thick, vibrant, and at 0.85 opacity (85% brightness)
-          let weight = 5.5;
-          let opacity = 0.85;
-          let dashArray: string | undefined = undefined;
-
-          if (hasSelectedEngineer) {
-            if (isSelected) {
-              // Selected engineer: 1.0 (100% full brightness), weight 8, with glow
-              weight = 8;
-              opacity = 1.0;
-              dashArray = undefined;
-            } else {
-              // Non-selected engineer: Lightly dimmed to 0.55 opacity, weight 4 (fully visible and readable)
-              weight = 4;
-              opacity = 0.55;
-              dashArray = '6, 6';
-            }
-          }
-
-          return (
-            <React.Fragment key={`route-group-${user.uid}`}>
-              {/* Outer Glow Highlight Line for Selected Route */}
-              {isSelected && (
-                <Polyline
-                  positions={route}
-                  pathOptions={{
-                    color: '#ffffff',
-                    weight: 12,
-                    opacity: 0.6,
+            return (
+              <React.Fragment key={site.siteId}>
+                {/* Geofence Radius Circle */}
+                <CircleF
+                  center={{ lat: site.location.latitude, lng: site.location.longitude }}
+                  radius={site.location.geofenceRadiusMeters || 100}
+                  options={{
+                    strokeColor: color.hex,
+                    strokeOpacity: 0.8,
+                    strokeWeight: isSelected ? 3 : 2,
+                    fillColor: color.hex,
+                    fillOpacity: isSelected ? 0.35 : 0.18,
                   }}
                 />
-              )}
 
-              {/* Main Colorful Road Route Polyline */}
-              <Polyline
-                positions={route}
-                pathOptions={{
-                  color: color.hex,
-                  weight,
-                  opacity,
-                  dashArray,
-                  lineCap: 'round',
-                  lineJoin: 'round',
+                {/* Marker 1 (Site Pin): Fixed Red/Color Destination Pin with Label */}
+                <MarkerF
+                  position={{ lat: site.location.latitude, lng: site.location.longitude }}
+                  title={`${site.clientName} - ${site.location.address}`}
+                  label={{
+                    text: `📍 ${site.clientName}`,
+                    color: '#ffffff',
+                    fontWeight: 'bold',
+                    fontSize: '11px',
+                    className: 'bg-slate-900/90 border border-slate-700 px-2 py-0.5 rounded-full shadow-lg',
+                  }}
+                  icon={{
+                    path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+                    fillColor: '#EF4444', // Red Destination Pin
+                    fillOpacity: 1.0,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2,
+                    scale: 1.8,
+                  }}
+                  onClick={() => {
+                    setActiveSitePopup(site);
+                    onSelectSite(site.siteId);
+                    if (site.assignedEngineerId) onSelectEngineer(site.assignedEngineerId);
+                  }}
+                />
+
+                {/* InfoWindow Popup for Site Pin */}
+                {activeSitePopup?.siteId === site.siteId && (
+                  <InfoWindowF
+                    position={{ lat: site.location.latitude, lng: site.location.longitude }}
+                    onCloseClick={() => setActiveSitePopup(null)}
+                  >
+                    <div className="p-1 space-y-1.5 text-xs font-sans text-slate-900">
+                      <h4 className="font-extrabold text-sm text-slate-900">{site.clientName}</h4>
+                      <p className="text-[11px] text-slate-600">📍 {site.location.address}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">Geofence: {site.location.geofenceRadiusMeters || 100}m radius</p>
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${site.location.latitude},${site.location.longitude}&travelmode=driving`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-[11px] font-bold transition shadow-sm mt-1"
+                      >
+                        <span>🗺️ Launch Google Maps Navigation</span>
+                      </a>
+                    </div>
+                  </InfoWindowF>
+                )}
+              </React.Fragment>
+            );
+          })}
+
+          {/* 2. LIVE ROUTE POLYLINES CONNECTING ENGINEER TO SITE */}
+          {users.map((user) => {
+            if (user.role === 'admin' || user.email?.toLowerCase().trim() === 'admin@rakhoh.com') return null;
+            const track = liveTracking[user.uid];
+            const color = getEngineerColor(user.uid);
+            const isSelected = selectedEngineerId === user.uid;
+            const assignedSite = sites.find((s) => (s.assignedEngineerId === user.uid || (user.engineerId && s.assignedEngineerId === user.engineerId) || s.siteId === user.currentSiteId) && s.status !== 'completed');
+
+            const isRecentlyActive = track && track.latitude && track.longitude && track.latitude !== 0 && (Date.now() - (track.timestamp || track.lastUpdated || 0) < 60000);
+
+            if (!isRecentlyActive || !assignedSite) return null;
+
+            const path = osrmRoutes[user.uid] || [
+              { lat: track.latitude, lng: track.longitude },
+              { lat: assignedSite.location.latitude, lng: assignedSite.location.longitude },
+            ];
+
+            if (path.length < 2) return null;
+
+            let strokeWidth = 5;
+            let strokeOpacity = 0.85;
+
+            if (hasSelectedEngineer) {
+              if (isSelected) {
+                strokeWidth = 8;
+                strokeOpacity = 1.0;
+              } else {
+                strokeWidth = 3;
+                strokeOpacity = 0.45;
+              }
+            }
+
+            return (
+              <PolylineF
+                key={`polyline-${user.uid}`}
+                path={path}
+                options={{
+                  strokeColor: color.hex,
+                  strokeOpacity,
+                  strokeWeight: strokeWidth,
+                  geodesic: true,
                 }}
-                eventHandlers={{
-                  click: () => onSelectEngineer(user.uid),
-                }}
+                onClick={() => onSelectEngineer(user.uid)}
               />
-            </React.Fragment>
-          );
-        })}
+            );
+          })}
 
-        {/* 3. LIVE ENGINEER MARKERS WITH HIGH VISIBILITY NAME TAGS */}
-        {users.map((user) => {
-          if (user.role === 'admin' || user.email?.toLowerCase().trim() === 'admin@rakhoh.com') return null;
-          const track = liveTracking[user.uid];
-          const isRecentlyActive = track && track.latitude && track.longitude && track.latitude !== 0 && (Date.now() - (track.timestamp || track.lastUpdated || 0) < 60000);
-          if (!isRecentlyActive) return null;
+          {/* 3. MARKER 2 (LIVE ENGINEER LOCATION PINS) */}
+          {users.map((user) => {
+            if (user.role === 'admin' || user.email?.toLowerCase().trim() === 'admin@rakhoh.com') return null;
+            const track = liveTracking[user.uid];
+            const isRecentlyActive = track && track.latitude && track.longitude && track.latitude !== 0 && (Date.now() - (track.timestamp || track.lastUpdated || 0) < 60000);
+            if (!isRecentlyActive) return null;
 
-          const color = getEngineerColor(user.uid);
-          const isSelected = selectedEngineerId === user.uid;
+            const color = getEngineerColor(user.uid);
+            const isSelected = selectedEngineerId === user.uid;
 
-          return (
-            <Marker
-              key={`engineer-${user.uid}`}
-              position={[track.latitude, track.longitude]}
-              icon={createEngineerMarkerIcon(user, track, color.hex, isSelected, hasSelectedEngineer)}
-              eventHandlers={{
-                click: () => onSelectEngineer(user.uid),
-              }}
-            />
-          );
-        })}
-      </MapContainer>
+            return (
+              <MarkerF
+                key={`engineer-marker-${user.uid}`}
+                position={{ lat: track.latitude, lng: track.longitude }}
+                title={`${user.name} (#${user.engineerId}) - Live Telematics GPS`}
+                label={{
+                  text: `🔵 ${user.name}`,
+                  color: '#ffffff',
+                  fontWeight: 'bold',
+                  fontSize: '11px',
+                  className: 'bg-slate-900/90 border border-slate-700 px-2 py-0.5 rounded-full shadow-lg',
+                }}
+                icon={{
+                  path: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z',
+                  fillColor: '#3B82F6', // Blue Engineer Marker
+                  fillOpacity: 1.0,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2.5,
+                  scale: 1.6,
+                }}
+                onClick={() => onSelectEngineer(user.uid)}
+              />
+            );
+          })}
+        </GoogleMap>
+      ) : (
+        <div className="w-full h-full min-h-[450px] bg-slate-950 rounded-2xl flex flex-col justify-center items-center p-6 space-y-3">
+          <Sparkles className="w-10 h-10 text-cyan-400 animate-spin" />
+          <h4 className="font-extrabold text-sm text-slate-100">Initializing Google Maps JavaScript API...</h4>
+          <p className="text-xs text-slate-400">Loading live satellite vectors and telematics coordinates.</p>
+        </div>
+      )}
     </div>
   );
 };

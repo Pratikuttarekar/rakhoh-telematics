@@ -43,22 +43,42 @@ export function getEngineerColor(engineerId: string) {
   return palette[idx];
 }
 
-// Tile provider options
+// Tile provider options featuring Google Maps layers
 const TILE_PROVIDERS = {
-  osm: {
-    name: 'OpenStreetMap (Standard / Light Mode)',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  googleStandard: {
+    name: 'Google Maps (Standard)',
+    url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    maxZoom: 20,
+    attribution: '&copy; Google Maps',
+  },
+  googleSatellite: {
+    name: 'Google Maps (Satellite)',
+    url: 'https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    maxZoom: 20,
+    attribution: '&copy; Google Maps',
+  },
+  googleTerrain: {
+    name: 'Google Maps (Terrain)',
+    url: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    maxZoom: 20,
+    attribution: '&copy; Google Maps',
+  },
+  googleHybrid: {
+    name: 'Google Maps (Hybrid)',
+    url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    maxZoom: 20,
+    attribution: '&copy; Google Maps',
   },
   cartoDark: {
-    name: 'CartoDB Dark Matter',
+    name: 'CartoDB Dark Matter (Dark Mode)',
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-  },
-  satellite: {
-    name: 'Esri Satellite',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS',
+    subdomains: ['a', 'b', 'c'],
+    maxZoom: 19,
+    attribution: '&copy; CARTO',
   },
 };
 
@@ -179,7 +199,7 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
   onSelectEngineer,
   onSelectSite,
 }) => {
-  const [activeTileKey, setActiveTileKey] = useState<keyof typeof TILE_PROVIDERS>('osm');
+  const [activeTileKey, setActiveTileKey] = useState<keyof typeof TILE_PROVIDERS>('googleStandard');
   const [resetCounter, setResetCounter] = useState(0);
   const [osrmRoutes, setOsrmRoutes] = useState<Record<string, [number, number][]>>({});
   const [isLegendExpanded, setIsLegendExpanded] = useState(false);
@@ -383,6 +403,8 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
           key={activeTileKey}
           attribution={currentTile.attribution}
           url={currentTile.url}
+          subdomains={currentTile.subdomains || ['mt0', 'mt1', 'mt2', 'mt3']}
+          maxZoom={currentTile.maxZoom || 20}
         />
 
         {/* 1. ASSIGNED SITES & GEOFENCE CIRCLES */}

@@ -29,6 +29,12 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
   const [isLiveGpsTracking, setIsLiveGpsTracking] = useState(!isAdmin);
   const watchIdRef = useRef<number | null>(null);
 
+  const handleOpenGoogleMapsNavigation = () => {
+    const destination = `${site.location.latitude},${site.location.longitude}`;
+    const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+    window.open(gmapsUrl, '_blank');
+  };
+
   const startGpsStream = () => {
     if (isAdmin) return;
     if ('geolocation' in navigator) {
@@ -96,6 +102,7 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
       onToggleSimulation();
     } else {
       startGpsStream();
+      handleOpenGoogleMapsNavigation();
       onToggleSimulation();
     }
   };
@@ -187,6 +194,15 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
             {isLiveGpsTracking || isSimulating ? 'Pause GPS' : 'Start GPS'}
           </button>
         </div>
+
+        {/* Google Maps Deep Link Navigation Button */}
+        <button
+          onClick={handleOpenGoogleMapsNavigation}
+          className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-cyan-500/20 transition flex items-center justify-center gap-2"
+        >
+          <Navigation className="w-4 h-4 text-slate-950" />
+          <span>Launch Google Maps Navigation</span>
+        </button>
 
         {/* Live Metrics Grid */}
         <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2 text-xs">

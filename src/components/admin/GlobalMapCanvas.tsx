@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Circle, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Circle, Polyline, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { LiveTracking, Site, User } from '../../types/fsm';
 import { Layers, Maximize2, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
@@ -413,7 +413,23 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
                     if (site.assignedEngineerId) onSelectEngineer(site.assignedEngineerId);
                   },
                 }}
-              />
+              >
+                <Popup className="custom-site-popup">
+                  <div className="p-1 space-y-1.5 text-xs font-sans">
+                    <h4 className="font-extrabold text-sm text-slate-900">{site.clientName}</h4>
+                    <p className="text-[11px] text-slate-600">📍 {site.location.address}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">Geofence: {site.location.geofenceRadiusMeters || 100}m radius</p>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${site.location.latitude},${site.location.longitude}&travelmode=driving`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-[11px] font-bold transition shadow-sm mt-1"
+                    >
+                      <span>🗺️ Launch Google Maps Navigation</span>
+                    </a>
+                  </div>
+                </Popup>
+              </Marker>
             </React.Fragment>
           );
         })}

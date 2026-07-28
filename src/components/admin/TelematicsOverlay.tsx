@@ -162,9 +162,15 @@ export const TelematicsOverlay: React.FC<TelematicsOverlayProps> = ({
             {assignedSite && (
               <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px]">
                 <span className="text-slate-400 truncate">Target: <strong className="text-slate-200">{assignedSite.clientName}</strong></span>
-                <span className="px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold uppercase text-[8px]">
-                  {assignedSite.status}
-                </span>
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${assignedSite.location.latitude},${assignedSite.location.longitude}&travelmode=driving`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 hover:text-white border border-cyan-500/30 font-bold text-[9px] flex items-center gap-1 transition"
+                  title="Open Google Maps Navigation Deep Link"
+                >
+                  <Navigation className="w-2.5 h-2.5" /> Google Maps
+                </a>
               </div>
             )}
           </div>

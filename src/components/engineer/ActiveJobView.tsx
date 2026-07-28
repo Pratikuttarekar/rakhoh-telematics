@@ -189,21 +189,11 @@ export const ActiveJobView: React.FC<ActiveJobViewProps> = ({
         </div>
 
         {/* Live Metrics Grid */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
-            <Gauge className="w-4 h-4 text-amber-400" />
-            <div>
-              <span className="text-[10px] text-slate-400 block">Current Speed</span>
-              <span className="font-bold text-slate-100">{track.speedKmh} km/h</span>
-            </div>
-          </div>
-
-          <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
-            <Battery className="w-4 h-4 text-emerald-400" />
-            <div>
-              <span className="text-[10px] text-slate-400 block">Battery Level</span>
-              <span className="font-bold text-slate-100">{track.batteryPercentage}%</span>
-            </div>
+        <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2 text-xs">
+          <Gauge className="w-4 h-4 text-amber-400" />
+          <div>
+            <span className="text-[10px] text-slate-400 block">Current Speed</span>
+            <span className="font-bold text-slate-100">{track.speedKmh || track.speed || 0} km/h</span>
           </div>
         </div>
       </div>

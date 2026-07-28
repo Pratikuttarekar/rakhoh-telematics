@@ -73,16 +73,18 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
           <Columns className="w-4 h-4" /> <span className="hidden sm:inline">Dual Live View</span><span className="sm:hidden">Split</span>
         </button>
 
-        <button
-          onClick={() => onChangeViewMode('engineer')}
-          className={`px-3 sm:px-4 py-2 rounded-xl transition flex items-center gap-1.5 ${
-            viewMode === 'engineer'
-              ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20 font-extrabold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Smartphone className="w-4 h-4" /> <span className="hidden sm:inline">Engineer Mobile View</span><span className="sm:hidden">Mobile</span>
-        </button>
+        {currentRole !== 'admin' && (
+          <button
+            onClick={() => onChangeViewMode('engineer')}
+            className={`px-3 sm:px-4 py-2 rounded-xl transition flex items-center gap-1.5 ${
+              viewMode === 'engineer'
+                ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20 font-extrabold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Smartphone className="w-4 h-4" /> <span className="hidden sm:inline">Engineer Mobile View</span><span className="sm:hidden">Mobile</span>
+          </button>
+        )}
       </div>
 
       {/* Live Stream Telematics Controller & Admin Actions */}

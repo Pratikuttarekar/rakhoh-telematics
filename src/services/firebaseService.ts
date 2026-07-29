@@ -27,26 +27,41 @@ export class FirebaseService {
 
     console.log('FSM Platform: Querying Firestore /users (role == engineer) & RTDB /live_locations...');
 
-    // 1. Direct Firestore /users Collection Listener
-    const usersRef = collection(db, 'users');
+    // 1. Direct Firestore /users Collection Listener (where role == 'engineer')
+    const usersQuery = query(collection(db, 'users'), where('role', '==', 'engineer'));
     const unsubUsers = onSnapshot(
-      usersRef,
+      usersQuery,
       (snapshot) => {
-        const allUsers = snapshot.docs.map((docSnap) => {
+        const engineersList = snapshot.docs.map((docSnap) => {
           const data = docSnap.data() as User;
-          const rawRole = (data.role || '').toLowerCase().trim();
-          const isAdmin = rawRole === 'admin' || data.email?.toLowerCase().trim() === 'admin@rakhoh.com';
-          const role: UserRole = isAdmin ? 'admin' : 'engineer';
-
           return {
             ...data,
             uid: docSnap.id || data.uid,
-            role,
+            role: 'engineer' as UserRole,
           };
         });
-        callbacks.onUsersUpdate(allUsers);
+        callbacks.onUsersUpdate(engineersList);
       },
-      (err) => console.warn('Firestore Users Listener Warning:', err.message)
+      (err) => {
+        console.warn('Firestore /users (role == engineer) Listener Note:', err.message);
+        if (db) {
+          onSnapshot(collection(db, 'users'), (snap) => {
+            const fallbackEngineers = snap.docs
+              .map((docSnap) => {
+                const data = docSnap.data() as User;
+                const rawRole = (data.role || '').toLowerCase().trim();
+                const isAdmin = rawRole === 'admin' || data.email?.toLowerCase().trim() === 'admin@rakhoh.com';
+                return {
+                  ...data,
+                  uid: docSnap.id || data.uid,
+                  role: isAdmin ? ('admin' as UserRole) : ('engineer' as UserRole),
+                };
+              })
+              .filter((u) => u.role === 'engineer');
+            callbacks.onUsersUpdate(fallbackEngineers);
+          });
+        }
+      }
     );
 
     // 2. Firestore /sites Collection Listener

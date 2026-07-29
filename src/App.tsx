@@ -18,12 +18,15 @@ import { ErrorBoundary } from './components/auth/ErrorBoundary';
 import { HistoricalLogsModal } from './components/admin/HistoricalLogsModal';
 import { ManageDispatchesModal } from './components/admin/ManageDispatchesModal';
 import { UserManagementModal } from './components/admin/UserManagementModal';
+import { useEngineersList } from './hooks/useEngineersList';
 
 function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
   const { authRole, authEmail, currentUserDoc, logout } = useAuth();
   const navigate = useNavigate();
 
+  const liveEngineersSnapshot = useEngineersList();
   const [users, setUsers] = useState<User[]>(fsmStore.getUsers());
+  const displayEngineers = liveEngineersSnapshot.length > 0 ? liveEngineersSnapshot : users;
   const [sites, setSites] = useState<Site[]>(fsmStore.getSites());
   const [liveTracking, setLiveTracking] = useState<Record<string, LiveTracking>>(fsmStore.getLiveTracking());
   const [arrivalAlerts, setArrivalAlerts] = useState<ArrivalAlert[]>(fsmStore.getArrivalAlerts());
@@ -114,7 +117,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
         {viewMode === 'admin' && (
           <div className="w-full h-full flex flex-col lg:flex-row gap-4 min-h-screen lg:min-h-0">
             <SidebarFilter
-              users={users}
+              users={displayEngineers}
               sites={sites}
               liveTracking={liveTracking}
               selectedEngineerId={selectedEngineerId}
@@ -134,7 +137,7 @@ function MainAppLayout({ initialViewMode }: { initialViewMode: ViewMode }) {
 
             <div className="flex-1 h-[450px] lg:h-full relative min-h-[400px]">
               <GlobalMapCanvas
-                users={users}
+                users={displayEngineers}
                 sites={sites}
                 liveTracking={liveTracking}
                 selectedEngineerId={selectedEngineerId}

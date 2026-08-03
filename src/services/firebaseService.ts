@@ -64,12 +64,19 @@ export class FirebaseService {
       }
     );
 
-    // 2. Firestore /sites Collection Listener
+    // 2. Firestore /sites and /jobs Collection Listener
     const unsubSites = onSnapshot(
       collection(db, 'sites'),
       (snapshot) => {
-        const sites = snapshot.docs.map((docSnap) => docSnap.data() as Site);
-        callbacks.onSitesUpdate(sites);
+        if (!snapshot.empty) {
+          const sites = snapshot.docs.map((docSnap) => docSnap.data() as Site);
+          callbacks.onSitesUpdate(sites);
+        } else if (db) {
+          onSnapshot(collection(db, 'jobs'), (jobsSnap) => {
+            const jobsAsSites = jobsSnap.docs.map((d) => d.data() as Site);
+            callbacks.onSitesUpdate(jobsAsSites);
+          });
+        }
       },
       (err) => console.warn('Firestore Sites Listener Warning:', err.message)
     );
@@ -206,12 +213,13 @@ export class FirebaseService {
     }
   }
 
-  // Push Site / Dispatch document to Firestore /sites/{siteId} and /dispatches/{siteId}
+  // Push Site / Dispatch document to Firestore /sites/{siteId}, /jobs/{siteId}, and /dispatches/{siteId}
   public async pushSite(site: Site) {
     if (!this.isEnabled() || !db) return;
     try {
       const siteDocRef = doc(db, 'sites', site.siteId);
       const dispatchDocRef = doc(db, 'dispatches', site.siteId);
+      const jobDocRef = doc(db, 'jobs', site.siteId);
       const payload = {
         ...site,
         assignedEngineerId: site.assignedEngineerId,
@@ -224,17 +232,19 @@ export class FirebaseService {
       };
       await setDoc(siteDocRef, payload, { merge: true });
       await setDoc(dispatchDocRef, payload, { merge: true });
+      await setDoc(jobDocRef, payload, { merge: true });
     } catch (err: any) {
       console.warn('Firestore Site Push Error:', err.message);
     }
   }
 
-  // Delete Site / Dispatch document from Firestore /sites/{siteId} and /dispatches/{siteId}
+  // Delete Site / Dispatch document from Firestore /sites, /jobs, and /dispatches
   public async deleteSite(siteId: string) {
     if (!this.isEnabled() || !db) return;
     try {
       await deleteDoc(doc(db, 'sites', siteId));
       await deleteDoc(doc(db, 'dispatches', siteId));
+      await deleteDoc(doc(db, 'jobs', siteId));
     } catch (err: any) {
       console.warn('Firestore Site Delete Error:', err.message);
     }

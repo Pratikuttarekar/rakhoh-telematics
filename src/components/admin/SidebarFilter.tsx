@@ -22,6 +22,36 @@ interface SidebarFilterProps {
   onOpenAlerts: () => void;
 }
 
+export function getLiveTrackForUser(user: User, liveTracking: Record<string, LiveTracking>): LiveTracking | null {
+  if (!user || !liveTracking) return null;
+  if (liveTracking[user.uid]) return liveTracking[user.uid];
+  if (user.engineerId && liveTracking[user.engineerId]) return liveTracking[user.engineerId];
+  if (user.engineerId && liveTracking[`ENG_${user.engineerId}`]) return liveTracking[`ENG_${user.engineerId}`];
+  if (user.engineerId && liveTracking[user.engineerId.replace(/^ENG_/, '')]) return liveTracking[user.engineerId.replace(/^ENG_/, '')];
+  if (user.email && liveTracking[user.email.toLowerCase()]) return liveTracking[user.email.toLowerCase()];
+  if (user.name && liveTracking[user.name.toLowerCase()]) return liveTracking[user.name.toLowerCase()];
+
+  const match = Object.values(liveTracking).find((t) => {
+    if (!t) return false;
+    if (t.engineerId === user.uid || t.engineerId === user.engineerId || (t as any).uid === user.uid) return true;
+    if (t.engineerName && user.name && t.engineerName.toLowerCase().trim() === user.name.toLowerCase().trim()) return true;
+    return false;
+  });
+
+  return match || null;
+}
+
+export function isUserRecentlyActive(user: User, liveTracking: Record<string, LiveTracking>): boolean {
+  if (!user) return false;
+  const track = getLiveTrackForUser(user, liveTracking);
+  const isUserOnline = (user.status as string) === 'online';
+  if (isUserOnline) return true;
+  if (!track) return isUserOnline;
+  if (track.latitude && track.latitude !== 0) return true;
+  const lastPing = track.timestamp || track.lastUpdated || (track as any).lastSeen || 0;
+  return Date.now() - lastPing < 300000 || track.isOnline === true || (track as any).status === 'online';
+}
+
 export const SidebarFilter: React.FC<SidebarFilterProps> = ({
   users,
   sites,
@@ -40,12 +70,7 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
   unreadAlertCount,
   onOpenAlerts,
 }) => {
-  const isUserRecentlyActive = (u: User) => {
-    const track = liveTracking[u.uid];
-    if (!track || !track.latitude || track.latitude === 0) return false;
-    const lastPing = track.timestamp || track.lastUpdated || 0;
-    return Date.now() - lastPing < 60000;
-  };
+  const isUserActive = (u: User) => isUserRecentlyActive(u, liveTracking);
 
   const fieldEngineers = users.filter((u) => {
     const rawRole = (u.role || '').toLowerCase().trim();
@@ -54,7 +79,7 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
 
   // Compute real counts
   const totalEngineers = fieldEngineers.length;
-  const onlineCount = fieldEngineers.filter(isUserRecentlyActive).length;
+  const onlineCount = fieldEngineers.filter(isUserActive).length;
   const offlineCount = Math.max(0, totalEngineers - onlineCount);
   const workingCount = sites.filter((s) => s.status === 'working').length;
 
@@ -65,7 +90,7 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
 
     if (!matchesSearch) return false;
 
-    const isActive = isUserRecentlyActive(user);
+    const isActive = isUserActive(user);
 
     if (filterStatus === 'all') return true;
     if (filterStatus === 'offline') return !isActive;
@@ -199,12 +224,12 @@ export const SidebarFilter: React.FC<SidebarFilterProps> = ({
           </div>
         ) : (
           filteredUsers.map((user) => {
-          const track = liveTracking[user.uid];
+          const track = getLiveTrackForUser(user, liveTracking);
           const isSelected = selectedEngineerId === user.uid;
           const assignedSite = sites.find((s) => s.siteId === user.currentSiteId);
           const color = getEngineerColor(user.uid);
 
-          const isOnline = isUserRecentlyActive(user);
+          const isOnline = isUserActive(user);
 
           let statusBadgeColor = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
           let statusText = 'Online';

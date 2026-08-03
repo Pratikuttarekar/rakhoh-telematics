@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, MarkerF, PolylineF, CircleF, InfoWindowF } from '@react-google-maps/api';
 import { LiveTracking, Site, User } from '../../types/fsm';
 import { Layers, Maximize2, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
+import { getLiveTrackForUser, isUserRecentlyActive } from './SidebarFilter';
 
 interface GlobalMapCanvasProps {
   users: User[];
@@ -142,12 +143,12 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
   // Dynamic Center Calculation based on active dispatches or selected engineer
   const computedCenter = useMemo(() => {
     if (selectedEngineerId) {
-      const track = liveTracking[selectedEngineerId];
+      const selectedUser = users.find((u) => u.uid === selectedEngineerId);
+      const track = selectedUser ? getLiveTrackForUser(selectedUser, liveTracking) : liveTracking[selectedEngineerId];
       if (track && track.latitude && track.longitude) {
         return { lat: track.latitude, lng: track.longitude };
       }
-      const user = users.find((u) => u.uid === selectedEngineerId);
-      const site = sites.find((s) => s.siteId === user?.currentSiteId);
+      const site = sites.find((s) => s.siteId === selectedUser?.currentSiteId);
       if (site) {
         return { lat: site.location.latitude, lng: site.location.longitude };
       }
@@ -171,7 +172,7 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
       let hasPoints = false;
 
       users.forEach((u) => {
-        const track = liveTracking[u.uid];
+        const track = getLiveTrackForUser(u, liveTracking);
         if (track && track.latitude && track.longitude) {
           bounds.extend({ lat: track.latitude, lng: track.longitude });
           hasPoints = true;
@@ -195,7 +196,7 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
       const bounds = new google.maps.LatLngBounds();
       let hasPoints = false;
       users.forEach((u) => {
-        const track = liveTracking[u.uid];
+        const track = getLiveTrackForUser(u, liveTracking);
         if (track && track.latitude && track.longitude) {
           bounds.extend({ lat: track.latitude, lng: track.longitude });
           hasPoints = true;
@@ -264,7 +265,7 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
         {isLegendExpanded && (
           <div className="p-3 pt-0 border-t border-slate-800/80 grid grid-cols-2 gap-2 animate-in fade-in duration-200">
             {users.map((user) => {
-              const track = liveTracking[user.uid];
+              const track = getLiveTrackForUser(user, liveTracking);
               const color = getEngineerColor(user.uid);
               const assignedSite = sites.find((s) => s.siteId === user.currentSiteId);
               const isSelected = selectedEngineerId === user.uid;
@@ -400,17 +401,19 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
           {/* 2. LIVE ROUTE POLYLINES CONNECTING ENGINEER TO SITE */}
           {users.map((user) => {
             if (user.role === 'admin' || user.email?.toLowerCase().trim() === 'admin@rakhoh.com') return null;
-            const track = liveTracking[user.uid];
+            const track = getLiveTrackForUser(user, liveTracking);
             const color = getEngineerColor(user.uid);
             const isSelected = selectedEngineerId === user.uid;
             const assignedSite = sites.find((s) => (s.assignedEngineerId === user.uid || (user.engineerId && s.assignedEngineerId === user.engineerId) || s.siteId === user.currentSiteId) && s.status !== 'completed');
 
-            const isRecentlyActive = track && track.latitude && track.longitude && track.latitude !== 0 && (Date.now() - (track.timestamp || track.lastUpdated || 0) < 60000);
-
+            const isRecentlyActive = isUserRecentlyActive(user, liveTracking);
             if (!isRecentlyActive || !assignedSite) return null;
 
+            const startLat = track?.latitude || (assignedSite ? assignedSite.location.latitude - 0.02 : 18.5204);
+            const startLng = track?.longitude || (assignedSite ? assignedSite.location.longitude - 0.02 : 73.8567);
+
             const path = osrmRoutes[user.uid] || [
-              { lat: track.latitude, lng: track.longitude },
+              { lat: startLat, lng: startLng },
               { lat: assignedSite.location.latitude, lng: assignedSite.location.longitude },
             ];
 
@@ -447,9 +450,13 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
           {/* 3. MARKER 2 (LIVE ENGINEER LOCATION PINS) */}
           {users.map((user) => {
             if (user.role === 'admin' || user.email?.toLowerCase().trim() === 'admin@rakhoh.com') return null;
-            const track = liveTracking[user.uid];
-            const isRecentlyActive = track && track.latitude && track.longitude && track.latitude !== 0 && (Date.now() - (track.timestamp || track.lastUpdated || 0) < 60000);
+            const track = getLiveTrackForUser(user, liveTracking);
+            const isRecentlyActive = isUserRecentlyActive(user, liveTracking);
             if (!isRecentlyActive) return null;
+
+            const assignedSite = sites.find((s) => (s.assignedEngineerId === user.uid || (user.engineerId && s.assignedEngineerId === user.engineerId) || s.siteId === user.currentSiteId));
+            const lat = track?.latitude || (assignedSite ? assignedSite.location.latitude - 0.02 : 18.5204);
+            const lng = track?.longitude || (assignedSite ? assignedSite.location.longitude - 0.02 : 73.8567);
 
             const color = getEngineerColor(user.uid);
             const isSelected = selectedEngineerId === user.uid;
@@ -457,7 +464,7 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
             return (
               <MarkerF
                 key={`engineer-marker-${user.uid}`}
-                position={{ lat: track.latitude, lng: track.longitude }}
+                position={{ lat, lng }}
                 title={`${user.name} (#${user.engineerId}) - Live Telematics GPS`}
                 label={{
                   text: `🔵 ${user.name}`,
@@ -468,7 +475,7 @@ export const GlobalMapCanvas: React.FC<GlobalMapCanvasProps> = ({
                 }}
                 icon={{
                   path: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z',
-                  fillColor: '#3B82F6', // Blue Engineer Marker
+                  fillColor: color.hex || '#3B82F6',
                   fillOpacity: 1.0,
                   strokeColor: '#ffffff',
                   strokeWeight: 2.5,
